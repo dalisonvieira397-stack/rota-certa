@@ -1,0 +1,3402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rota Certa — Sistema de Cobrança</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #E8E0C9;
+    --paper-light: #F8F4E7;
+    --ink: #2A2118;
+    --ink-soft: #6B5F4C;
+    --stamp-red: #A63D2F;
+    --ledger-green: #33513C;
+    --ledger-green-dark: #22392A;
+    --gold: #A9761F;
+    --line: #C9BEA0;
+    --paid: #33513C;
+    --pending: #A9761F;
+    --late: #A63D2F;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    background: var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 32px);
+    color: var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+
+  h1,h2,h3,h4{
+    font-family:'Zilla Slab', serif;
+    margin:0;
+    font-weight:600;
+  }
+
+  .mono{
+    font-family:'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== Header / role switcher ===== */
+  .app-header{
+    background: var(--ledger-green-dark);
+    color: var(--paper-light);
+    padding: 18px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    border-bottom: 4px double var(--gold);
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .brand h1{ font-size:1.5rem; letter-spacing:0.3px; }
+  .brand span{
+    font-size:0.75rem;
+    color: var(--paper);
+    opacity:0.75;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .role-switch{
+    display:flex;
+    gap:0;
+    border:1px solid var(--paper);
+    border-radius: 3px;
+    overflow:hidden;
+  }
+  .role-switch button{
+    background:transparent;
+    color: var(--paper-light);
+    border:none;
+    padding:9px 18px;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:600;
+    font-size:0.85rem;
+    cursor:pointer;
+    transition: background 0.15s ease;
+  }
+  .role-switch button.active{
+    background: var(--gold);
+    color: var(--ledger-green-dark);
+  }
+
+  main{
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* ===== Cobrador view ===== */
+  .cobrador-select{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom: 22px;
+    font-size:0.9rem;
+    color: var(--ink-soft);
+  }
+  .cobrador-select select{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:0.9rem;
+    padding:6px 10px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background: var(--paper-light);
+    color: var(--ink);
+  }
+
+  .route-summary{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom:14px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .route-summary h2{ font-size:1.6rem; }
+  .route-summary .date{
+    font-family:'IBM Plex Mono', monospace;
+    color: var(--ink-soft);
+    font-size:0.85rem;
+  }
+
+  .ficha-card{
+    background: var(--paper-light);
+    border:1px solid var(--line);
+    border-left: 5px solid var(--pending);
+    border-radius: 2px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    position:relative;
+  }
+  .ficha-card.paga{ border-left-color: var(--paid); opacity:0.75; }
+  .ficha-card.remarcada{ border-left-color: var(--gold); }
+
+  .ficha-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+  }
+  .ficha-num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.75rem;
+    color: var(--ink-soft);
+    letter-spacing:0.5px;
+  }
+  .ficha-card h3{ font-size:1.1rem; margin-top:2px; }
+  .ficha-endereco{ font-size:0.85rem; color: var(--ink-soft); margin-top:2px; }
+  .ficha-valor{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:1.3rem;
+    font-weight:600;
+    color: var(--ledger-green);
+    white-space:nowrap;
+  }
+
+  .stamp{
+    position:absolute;
+    top:14px;
+    right:16px;
+    border:2px solid var(--paid);
+    color: var(--paid);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.7rem;
+    font-weight:600;
+    padding:3px 10px;
+    border-radius:3px;
+    transform: rotate(-6deg);
+    letter-spacing:1px;
+  }
+
+  .ficha-actions{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+    flex-wrap:wrap;
+  }
+  button.btn{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:600;
+    font-size:0.85rem;
+    padding:8px 16px;
+    border-radius:3px;
+    border:1px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    cursor:pointer;
+    transition: all 0.15s ease;
+  }
+  button.btn.primary{
+    background: var(--ledger-green);
+    border-color: var(--ledger-green);
+    color: var(--paper-light);
+  }
+  button.btn.primary:hover{ background: var(--ledger-green-dark); }
+  button.btn.ghost:hover{ background: var(--paper); }
+  button.btn:disabled{ opacity:0.4; cursor:default; }
+
+  .inline-form{
+    margin-top:12px;
+    padding-top:12px;
+    border-top:1px dashed var(--line);
+    display:none;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .inline-form.show{ display:flex; }
+  .inline-form select, .inline-form input{
+    font-family:'IBM Plex Sans', sans-serif;
+    padding:6px 10px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-size:0.85rem;
+  }
+
+  .day-footer{
+    margin-top: 26px;
+    padding: 18px 20px;
+    background: var(--ledger-green-dark);
+    color: var(--paper-light);
+    border-radius:3px;
+    display:flex;
+    gap:28px;
+    flex-wrap:wrap;
+  }
+  .day-footer .stat{ display:flex; flex-direction:column; gap:2px; }
+  .day-footer .stat .label{ font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; opacity:0.65; }
+  .day-footer .stat .value{ font-family:'IBM Plex Mono', monospace; font-size:1.3rem; font-weight:600; color: var(--gold); }
+
+  /* ===== Admin view ===== */
+  .admin-tabs{
+    display:flex;
+    gap:2px;
+    margin-bottom:22px;
+    border-bottom: 2px solid var(--ink);
+    flex-wrap:wrap;
+  }
+  .admin-tabs button{
+    background:none;
+    border:none;
+    padding:10px 16px;
+    font-family:'Zilla Slab', serif;
+    font-size:1rem;
+    font-weight:600;
+    color: var(--ink-soft);
+    cursor:pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom:-2px;
+  }
+  .admin-tabs button.active{
+    color: var(--ink);
+    border-bottom-color: var(--stamp-red);
+  }
+  .admin-panel{ display:none; }
+  .admin-panel.active{ display:block; }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background: var(--paper-light);
+    border:1px solid var(--line);
+  }
+  thead th{
+    text-align:left;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.8px;
+    color: var(--ink-soft);
+    padding:10px 14px;
+    border-bottom:2px solid var(--ink);
+  }
+  tbody td{
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    font-size:0.9rem;
+  }
+  tbody tr:last-child td{ border-bottom:none; }
+  td.num, th.num{ font-family:'IBM Plex Mono', monospace; text-align:right; }
+
+  .badge{
+    display:inline-block;
+    padding:2px 9px;
+    border-radius:3px;
+    font-size:0.72rem;
+    font-weight:600;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .badge.ok{ background:rgba(51,81,60,0.14); color: var(--ledger-green); }
+  .badge.bad{ background:rgba(166,61,47,0.14); color: var(--stamp-red); }
+  .badge.wait{ background:rgba(169,118,31,0.16); color: var(--gold); }
+
+  .detalhe-cobrador{
+    background: var(--paper-light);
+    border:1px solid var(--line);
+    border-left:5px solid var(--gold);
+    border-radius:2px;
+    padding:16px 20px;
+    margin-top:16px;
+    display:none;
+  }
+  .detalhe-cobrador.show{ display:block; }
+  .detalhe-cobrador h3{ font-size:1.05rem; margin-bottom:10px; }
+  .detalhe-grid{
+    display:flex;
+    gap:28px;
+    flex-wrap:wrap;
+  }
+  .detalhe-grid .stat{ display:flex; flex-direction:column; gap:2px; }
+  .detalhe-grid .stat .label{ font-size:0.7rem; text-transform:uppercase; letter-spacing:0.8px; color:var(--ink-soft); }
+  .detalhe-grid .stat .value{ font-family:'IBM Plex Mono', monospace; font-size:1.2rem; font-weight:600; color:var(--ledger-green); }
+
+  .envio-box{
+    margin-top:16px;
+    padding:16px 18px;
+    border-radius:3px;
+    border:1px dashed var(--line);
+    background: var(--paper-light);
+  }
+  .envio-box p{ margin:0 0 10px; font-size:0.85rem; color:var(--ink-soft); }
+  .envio-box.enviado{ border:1px solid var(--ledger-green); background:rgba(51,81,60,0.08); }
+  .envio-box.enviado p{ color: var(--ledger-green); font-weight:600; }
+
+  .avatar-wrap{ position:relative; display:inline-flex; align-items:center; gap:10px; }
+  .avatar{
+    width:32px; height:32px; border-radius:50%;
+    background: var(--ledger-green-dark); color: var(--paper-light);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace; font-size:0.78rem; font-weight:600;
+    flex-shrink:0;
+  }
+  .notif-dot{
+    position:absolute; top:-3px; left:22px;
+    width:14px; height:14px; border-radius:50%;
+    background: var(--stamp-red);
+    border:2px solid var(--paper-light);
+  }
+
+  .conf-valores{
+    margin-top:16px;
+    padding-top:16px;
+    border-top:1px dashed var(--line);
+  }
+  .conf-valores .linha{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; font-size:0.88rem;
+  }
+  .conf-valores input[type=number]{
+    font-family:'IBM Plex Mono', monospace;
+    padding:6px 10px; border:1px solid var(--line); border-radius:3px;
+    width:130px; text-align:right;
+  }
+  .diferenca-alerta{
+    margin-top:10px; padding:10px 14px; border-radius:3px;
+    background: rgba(166,61,47,0.12); color: var(--stamp-red);
+    font-size:0.85rem; font-weight:600;
+  }
+  .diferenca-ok{
+    margin-top:10px; padding:10px 14px; border-radius:3px;
+    background: rgba(51,81,60,0.12); color: var(--ledger-green);
+    font-size:0.85rem; font-weight:600;
+  }
+
+  .section-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .section-title h2{ font-size:1.3rem; }
+
+  .card-block{
+    background: var(--paper-light);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:18px 20px;
+    margin-bottom:24px;
+  }
+
+  .vale-form{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:16px;
+    padding-bottom:16px;
+    border-bottom:1px dashed var(--line);
+  }
+  .vale-form select, .vale-form input{
+    padding:7px 10px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:0.85rem;
+  }
+
+  .saldo-pos{ color: var(--ledger-green); font-weight:600; }
+  .saldo-neg{ color: var(--stamp-red); font-weight:600; }
+
+  .best{
+    background: rgba(169,118,31,0.14);
+  }
+
+  footer.note{
+    max-width:1000px;
+    margin: 0 auto 40px;
+    padding: 0 20px;
+    font-size:0.78rem;
+    color: var(--ink-soft);
+    line-height:1.5;
+  }
+
+  @media (max-width: 640px){
+    .ficha-top{ flex-direction:column; }
+    .ficha-valor{ font-size:1.1rem; }
+    thead th, tbody td{ padding:8px; font-size:0.8rem; }
+  }
+.chip{display:inline-block;padding:2px 9px;margin:2px;border:1px solid var(--ink-soft);border-radius:10px;font-size:.8rem}
+  .acoes{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .atraso{color:var(--stamp-red);font-weight:600}
+  .link-cob{color:inherit;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+  .link-cob:hover{color:var(--ledger-green)}
+  @media print{.role-switch,.admin-tabs,.acoes,footer.note,#view-cobrador,button{display:none!important}.admin-panel:not(.active){display:none!important}}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#33513C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rota Certa">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+
+<div id="tela-login" style="position:fixed;inset:0;z-index:100;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div class="card-block" style="max-width:380px;width:100%;">
+    <h1 style="font-size:1.6rem;">Rota Certa</h1>
+    <p style="font-size:.85rem;color:var(--ink-soft);">Entre com a chave de acesso da sua empresa, seu usuário e sua senha.</p>
+    <div class="vale-form" style="flex-direction:column;align-items:stretch;">
+      <input type="text" id="login-chave" placeholder="Chave de acesso da empresa">
+      <input type="text" id="login-usuario" placeholder="Usuário">
+      <input type="password" id="login-senha" placeholder="Senha" onkeydown="if(event.key==='Enter')entrar()">
+      <button class="btn primary" onclick="entrar()">Entrar</button>
+    </div>
+    <p id="login-erro" style="font-size:.85rem;color:var(--stamp-red);min-height:1.2em;"></p>
+    <p style="font-size:.75rem;color:var(--ink-soft);">Dados do protótipo — chave ROTA-2026 · administrador: admin / admin123 · cobrador: marcos.andrade / 1234</p>
+  </div>
+</div>
+
+<div class="app-header">
+  <div class="brand">
+    <h1>Rota Certa</h1>
+    <span>sistema de cobrança porta a porta</span>
+  </div>
+  <div class="role-switch">
+    <button id="btn-role-cobrador" class="active" onclick="setRole('cobrador')">Cobrador</button>
+    <button id="btn-role-admin" onclick="setRole('admin')">Administrador</button>
+  </div>
+  <button class="btn ghost" id="btn-sair" onclick="sair()" style="display:none;color:var(--paper);border-color:var(--paper);">Sair</button>
+</div>
+
+<main>
+
+  <!-- ===================== VISÃO DO COBRADOR ===================== -->
+  <section id="view-cobrador" class="view active">
+
+    <div class="cobrador-select">
+      Logado como
+      <select id="select-cobrador" onchange="renderCobrador()"></select>
+    </div>
+
+    <div id="barra-conexao" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0;">
+      <span id="banner-offline" style="font-size:.85rem;"></span>
+      <button class="btn ghost" id="btn-offline" onclick="alternarOffline()">Simular sem internet</button>
+    </div>
+
+    <div class="route-summary">
+      <div>
+        <h2 id="rota-titulo">Rota</h2>
+        <div class="date" id="rota-data"></div>
+      </div>
+    </div>
+
+    <div id="lista-fichas"></div>
+
+    <div class="day-footer" id="rodape-dia"></div>
+    <div class="envio-box" id="envio-dia"></div>
+  </section>
+
+  <!-- ===================== VISÃO DO ADMINISTRADOR ===================== -->
+  <section id="view-admin" class="view">
+
+    <div class="admin-tabs">
+      <button class="active" onclick="setAdminTab('conferencia')">Conferência diária</button>
+      <button onclick="setAdminTab('lancar')">Lançar ficha</button>
+      <button onclick="setAdminTab('cobradores')">Cobradores</button>
+      <button onclick="setAdminTab('rotas')">Rotas por bairro</button>
+      <button onclick="setAdminTab('vales')">Vales</button>
+      <button onclick="setAdminTab('mensal')">Relatório mensal</button>
+      <button onclick="setAdminTab('arquivo')">Fichas encerradas</button>
+      <button onclick="setAdminTab('historico')">Cobrança por período</button>
+      <button onclick="setAdminTab('fichas')">Histórico de fichas</button>
+      <button onclick="setAdminTab('atrasadas')">Atrasadas</button>
+      <button onclick="setAdminTab('numeracao')">Numeração</button>
+      <button onclick="setAdminTab('registro')">Registro de alterações</button>
+      <button onclick="setAdminTab('dados')">Importar e backup</button>
+    </div>
+
+    <!-- Conferência diária -->
+    <div id="admin-conferencia" class="admin-panel active">
+      <div class="section-title">
+        <h2>Conferência do dia — <span class="mono" id="conf-data"></span></h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Cobrador</th>
+            <th class="num">Saiu p/ cobrança</th>
+            <th class="num">Pagas</th>
+            <th class="num">Remarcadas</th>
+            <th class="num">Não visitadas</th>
+            <th>Envio</th>
+            <th>Confere?</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tabela-conferencia"></tbody>
+      </table>
+
+      <div class="detalhe-cobrador" id="detalhe-cobrador-panel">
+        <h3 id="detalhe-cobrador-nome"></h3>
+        <div class="detalhe-grid">
+          <div class="stat"><span class="label">Fichas pendentes hoje</span><span class="value" id="detalhe-pendentes-hoje"></span></div>
+          <div class="stat"><span class="label">Fichas pagas hoje</span><span class="value" id="detalhe-pagas-hoje"></span></div>
+          <div class="stat"><span class="label">Fichas remarcadas hoje</span><span class="value" id="detalhe-remarcadas-hoje"></span></div>
+          <div class="stat"><span class="label">Não visitadas hoje</span><span class="value" id="detalhe-nao-visitadas-hoje"></span></div>
+          <div class="stat"><span class="label">Total de fichas na carteira</span><span class="value" id="detalhe-total-carteira"></span></div>
+        </div>
+        <div id="conf-valores-container"></div>
+        <div id="prestacao-contas-container"></div>
+      </div>
+
+      <div style="margin-top:16px; display:flex; justify-content:flex-end;">
+        <button class="btn primary" onclick="confirmarFechamento()">Confirmar fechamento do dia</button>
+      </div>
+      <p id="fechamento-status" style="font-size:0.85rem; color:var(--ink-soft); margin-top:10px;"></p>
+    </div>
+
+    <!-- Lançar ficha -->
+    <div id="admin-lancar" class="admin-panel">
+      <div class="section-title"><h2>Lançar nova ficha</h2></div>
+      <div class="card-block">
+        <div class="vale-form">
+          <input type="text" id="lancar-nome" placeholder="Nome do cliente" oninput="buscarClienteExistente()">
+          <select id="lancar-bairro" onchange="buscarClienteExistente()">
+            <option value="">Bairro</option>
+          </select>
+        </div>
+        <div class="vale-form"><input type="number" id="lancar-numero" placeholder="Nº da ficha (vazio = automático)" min="1" style="min-width:240px;"><input type="text" id="lancar-telefone" placeholder="Telefone / WhatsApp do cliente (com DDD)" style="min-width:240px;"><input type="text" id="lancar-cpf" placeholder="CPF do cliente (opcional)" maxlength="14" inputmode="numeric" autocomplete="off" oninput="this.value=mascaraCPF(this.value);buscarClienteExistente()" style="min-width:200px;"></div>
+        <p id="cliente-encontrado" style="font-size:0.85rem; color:var(--ledger-green); font-weight:600; display:none;"></p>
+        <p id="rota-destino" style="font-size:0.85rem; color:var(--ink-soft);"></p>
+        <div class="vale-form">
+          <input type="text" id="lancar-endereco" placeholder="Endereço" style="flex:1; min-width:220px;">
+        </div>
+        <div class="vale-form">
+          <input type="text" id="lancar-referencia" placeholder="Referência (ex: perto da padaria, portão azul)" style="flex:1; min-width:220px;">
+        </div>
+        <div class="vale-form">
+          <input type="text" id="lancar-mercadoria" placeholder="Mercadoria">
+          <input type="number" id="lancar-total" placeholder="Valor total (R$)" min="0" step="10">
+          <input type="number" id="lancar-parcela" placeholder="Valor da parcela (R$)" min="0" step="5">
+          <input type="date" id="lancar-vencimento" value="${HOJE}">
+        </div>
+        <button class="btn primary" onclick="lancarFicha()">Lançar ficha</button>
+        <p id="lancar-status" style="font-size:0.85rem; color:var(--ink-soft); margin-top:10px;"></p>
+      </div>
+    </div>
+
+    <!-- Rotas por bairro -->
+    <!-- Cobradores -->
+    <div id="admin-cobradores" class="admin-panel">
+      <div class="section-title"><h2>Cobradores</h2></div>
+      <p style="font-size:.85rem;">Chave de acesso da empresa: <b class="mono" id="chave-empresa"></b> — o cobrador entra no app com essa chave, o login e a senha criados aqui. Cada empresa que usa o sistema tem a sua própria chave.</p>
+      <div class="card-block">
+        <div class="vale-form">
+          <input type="text" id="cobrador-nome" placeholder="Nome completo">
+          <input type="text" id="cobrador-login" placeholder="Login de acesso">
+          <input type="text" id="cobrador-senha" placeholder="Senha">
+          <select id="cobrador-periodicidade">
+            <option value="semanal">Presta contas por semana</option>
+            <option value="mensal">Presta contas por mês</option>
+          </select>
+          <button class="btn primary" onclick="cadastrarCobrador()">Cadastrar cobrador</button>
+        </div>
+        <p id="cobrador-status" style="font-size:0.85rem; color:var(--ink-soft);"></p>
+        <table>
+          <thead><tr><th>Nome</th><th>Login</th><th>Periodicidade</th><th>Bairros da rota</th><th>Trocar senha</th><th>Situação</th></tr></thead>
+          <tbody id="tabela-cobradores"></tbody>
+        </table>
+        <div class="card-block" style="margin-top:16px;">
+          <h3>Transferir fichas de um cobrador para outro</h3>
+          <div class="vale-form">
+            <select id="tr-de" onchange="atualizarContagemTransferencia()"></select>
+            <span>→</span>
+            <select id="tr-para"></select>
+            <button class="btn primary" onclick="transferirFichas()">Transferir fichas ativas</button>
+          </div>
+          <p id="tr-contagem" style="font-size:.85rem;color:var(--ink-soft);"></p>
+          <p id="tr-status" style="font-size:.85rem;"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rotas por bairro -->
+    <div id="admin-rotas" class="admin-panel">
+      <div class="section-title"><h2>Rotas por bairro</h2></div>
+      <table>
+        <thead><tr><th>Cobrador</th><th>Bairros da rota</th><th>Adicionar bairro</th></tr></thead>
+        <tbody id="tabela-rotas"></tbody>
+      </table>
+    </div>
+
+    <!-- Fichas encerradas -->
+    <div id="admin-arquivo" class="admin-panel">
+      <div class="section-title">
+        <h2>Fichas encerradas (quitadas)</h2>
+        <button class="btn ghost" id="btn-toggle-arquivo" onclick="toggleArquivoVisivel()">Mostrar fichas quitadas</button>
+      </div>
+      <div class="vale-form" style="margin-bottom:16px;">
+        <input type="text" id="arquivo-busca" placeholder="Buscar por nome do cliente" oninput="renderArquivo()" style="min-width:260px;">
+      </div>
+      <table>
+        <thead><tr><th>Nº</th><th>Cliente</th><th>Mercadoria</th><th class="num">Valor total</th><th>Cobrador</th></tr></thead>
+        <tbody id="tabela-arquivo"></tbody>
+      </table>
+    </div>
+
+    <!-- Histórico de fichas -->
+    <div id="admin-fichas" class="admin-panel">
+      <div class="section-title"><h2>Histórico de pagamentos por ficha</h2></div>
+      <div class="vale-form"><input type="text" id="fichas-busca" placeholder="Buscar por nome ou nº da ficha" oninput="renderFichas()" style="flex:1;min-width:220px;"></div>
+      <table>
+        <thead><tr><th>Nº</th><th>Cliente</th><th>Mercadoria</th><th class="num">Total</th><th class="num">Pago</th><th class="num">Restante</th><th>Situação</th><th></th></tr></thead>
+        <tbody id="tabela-fichas"></tbody>
+      </table>
+      <div id="ficha-detalhe" class="card-block" style="display:none;"></div>
+    </div>
+
+    <!-- Atrasadas -->
+    <div id="admin-atrasadas" class="admin-panel">
+      <div class="section-title"><h2>Fichas atrasadas</h2></div>
+      <div class="acoes"><button class="btn ghost" onclick="exportar('atrasadas','print')">Imprimir</button><button class="btn ghost" onclick="exportar('atrasadas','csv')">Baixar planilha (CSV)</button><button class="btn primary" onclick="exportar('atrasadas','wpp')">Enviar por WhatsApp</button></div>
+      <table>
+        <thead><tr><th>Nº</th><th>Cliente</th><th>Cobrador</th><th class="num">Restante</th><th class="num">Dias de atraso</th><th></th></tr></thead>
+        <tbody id="tabela-atrasadas"></tbody>
+      </table>
+    </div>
+
+    <!-- Numeração -->
+    <div id="admin-numeracao" class="admin-panel">
+      <div class="section-title"><h2>Controle de numeração das fichas</h2></div>
+      <div class="card-block">
+        <div class="vale-form">
+          <input type="number" id="num-ini" value="510" min="1" oninput="renderNumeracao()" placeholder="Primeiro nº do bloco">
+          <input type="number" id="num-fim" value="530" min="1" oninput="renderNumeracao()" placeholder="Último nº do bloco">
+        </div>
+        <p id="num-resumo" style="font-size:.9rem;"></p>
+        <div id="num-faltando"></div>
+      </div>
+    </div>
+
+    <!-- Histórico de um cobrador -->
+    <div id="admin-cobhist" class="admin-panel">
+      <div class="section-title"><h2 id="cobhist-titulo">Histórico do cobrador</h2></div>
+      <div class="acoes">
+        <button class="btn ghost" onclick="mostrarAbaAdmin('conferencia')">← Voltar</button>
+        <button class="btn ghost" onclick="cobHistVerPeriodo()">Ver por semana ou mês</button>
+      </div>
+      <div class="vale-form">
+        <button class="btn ghost" onclick="cobHistDeslocar(-1)">‹ Dia anterior</button>
+        <input type="date" id="cobhist-data" onchange="renderCobHist()">
+        <button class="btn ghost" onclick="cobHistDeslocar(1)">Dia seguinte ›</button>
+        <button class="btn ghost" onclick="cobHistIrPara(HOJE)">Hoje</button>
+      </div>
+      <div class="acoes"><button class="btn ghost" onclick="exportar('cobhist','print')">Imprimir</button><button class="btn ghost" onclick="exportar('cobhist','csv')">Baixar planilha (CSV)</button><button class="btn primary" onclick="exportar('cobhist','wpp')">Enviar por WhatsApp</button></div>
+      <table>
+        <thead><tr><th>Dia escolhido</th><th class="num">Pagamentos</th><th class="num">Pix</th><th class="num">Dinheiro</th><th class="num">Total cobrado</th></tr></thead>
+        <tbody id="cobhist-resumo"></tbody>
+      </table>
+      <p id="cobhist-conf" style="font-size:.9rem;"></p>
+      <p id="cobhist-periodos" style="font-size:.9rem;color:var(--ink-soft);"></p>
+      <div class="section-title" style="margin-top:20px;"><h2>Clientes que pagaram neste dia</h2></div>
+      <table>
+        <thead><tr><th>Cliente</th><th>Ficha</th><th>Forma</th><th class="num">Valor</th></tr></thead>
+        <tbody id="cobhist-detalhe"></tbody>
+      </table>
+      <div class="section-title" style="margin-top:20px;"><h2>Dia a dia</h2></div>
+      <table>
+        <thead><tr><th>Data</th><th class="num">Pagamentos</th><th class="num">Pix</th><th class="num">Dinheiro</th><th class="num">Total</th><th></th></tr></thead>
+        <tbody id="cobhist-dias"></tbody>
+      </table>
+    </div>
+
+    <!-- Cobrança por período -->
+    <div id="admin-historico" class="admin-panel">
+      <div class="section-title"><h2>Histórico de cobrança por período</h2></div>
+      <div class="vale-form">
+        <select id="hist-cobrador" onchange="renderHistorico()"></select>
+        <select id="hist-periodo" onchange="renderHistorico()">
+          <option value="dia">Dia</option><option value="semana">Semana (seg a dom)</option><option value="mes">Mês</option>
+        </select>
+        <input type="date" id="hist-data" value="2026-09-04" onchange="renderHistorico()">
+      </div>
+      <div class="acoes"><button class="btn ghost" onclick="exportar('historico','print')">Imprimir</button><button class="btn ghost" onclick="exportar('historico','csv')">Baixar planilha (CSV)</button><button class="btn primary" onclick="exportar('historico','wpp')">Enviar por WhatsApp</button></div>
+      <p id="hist-rotulo" style="font-size:.9rem;color:var(--ink-soft);"></p>
+      <table>
+        <thead><tr><th>Cobrador</th><th class="num">Pagamentos</th><th class="num">Pix</th><th class="num">Dinheiro</th><th class="num">Total cobrado</th></tr></thead>
+        <tbody id="tabela-hist-resumo"></tbody>
+      </table>
+      <div class="section-title" style="margin-top:20px;"><h2>Clientes que pagaram</h2></div>
+      <table>
+        <thead><tr><th>Data</th><th>Cliente</th><th>Ficha</th><th>Cobrador</th><th>Forma</th><th class="num">Valor</th></tr></thead>
+        <tbody id="tabela-hist-detalhe"></tbody>
+      </table>
+    </div>
+
+    <!-- Registro de alterações -->
+    <div id="admin-registro" class="admin-panel">
+      <div class="section-title"><h2>Registro de alterações</h2></div>
+      <p style="font-size:.85rem;color:var(--ink-soft);">Tudo o que muda dinheiro ou fichas fica aqui: quem fez, quando e o quê.</p>
+      <div class="vale-form">
+        <input type="text" id="registro-busca" placeholder="Buscar por nome, ficha ou ação" oninput="renderRegistro()" style="flex:1;min-width:220px;">
+        <button class="btn ghost" onclick="exportarRegistro()">Baixar planilha (CSV)</button>
+      </div>
+      <table>
+        <thead><tr><th>Quando</th><th>Quem</th><th>O quê</th><th>Detalhe</th></tr></thead>
+        <tbody id="tabela-registro"></tbody>
+      </table>
+    </div>
+
+    <!-- Importar e backup -->
+    <div id="admin-dados" class="admin-panel">
+      <div class="section-title"><h2>Importar fichas e backup</h2></div>
+      <div class="card-block">
+        <h3>Importar fichas das cadernetas (planilha)</h3>
+        <p style="font-size:.85rem;">Monte uma planilha com as colunas: numero, cliente, bairro, endereco, referencia, telefone, cpf, mercadoria, valor_total, valor_pago, parcela, proxima_cobranca. São obrigatórias só numero, cliente, bairro, valor_total e parcela. O cpf é opcional e, se vier preenchido, precisa ser válido. Salve como CSV. O bairro precisa estar na rota de um cobrador, e assim cada ficha já vai para o cobrador certo.</p>
+        <div class="acoes">
+          <button class="btn ghost" onclick="baixarModeloImportacao()">Baixar planilha modelo</button>
+          <input type="file" id="import-arquivo" accept=".csv,.txt" onchange="lerImportacao()">
+        </div>
+        <div id="import-resumo"></div>
+      </div>
+      <div class="card-block">
+        <h3>Backup completo</h3>
+        <p style="font-size:.85rem;">Baixa todos os dados num arquivo. Restaurar substitui tudo o que está no sistema agora.</p>
+        <div class="acoes">
+          <button class="btn primary" onclick="exportarBackup()">Baixar backup</button>
+          <input type="file" id="backup-arquivo" accept=".json" onchange="restaurarBackup()">
+        </div>
+        <p id="backup-status" style="font-size:.85rem;"></p>
+      </div>
+      <div class="card-block">
+        <h3>Exportar para planilha</h3>
+        <div class="acoes">
+          <button class="btn ghost" onclick="exportarTabela('fichas')">Fichas</button>
+          <button class="btn ghost" onclick="exportarTabela('pagamentos')">Pagamentos</button>
+          <button class="btn ghost" onclick="exportarTabela('clientes')">Clientes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vales -->
+    <div id="admin-vales" class="admin-panel">
+      <div class="section-title"><h2>Vales (adiantamentos)</h2></div>
+      <div class="card-block">
+        <div class="vale-form">
+          <select id="vale-cobrador"></select>
+          <input type="number" id="vale-valor" placeholder="Valor (R$)" min="0" step="10">
+          <button class="btn primary" onclick="registrarVale()">Registrar vale</button>
+        </div>
+        <table>
+          <thead><tr><th>Cobrador</th><th>Data</th><th class="num">Valor</th><th>Origem</th></tr></thead>
+          <tbody id="tabela-vales"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Relatório mensal -->
+    <div id="admin-mensal" class="admin-panel">
+      <div class="section-title"><h2>Relatório do mês</h2></div>
+      <div class="acoes"><button class="btn ghost" onclick="exportar('mensal','print')">Imprimir</button><button class="btn ghost" onclick="exportar('mensal','csv')">Baixar planilha (CSV)</button><button class="btn primary" onclick="exportar('mensal','wpp')">Enviar por WhatsApp</button></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Cobrador</th>
+            <th class="num">Valor total cobrado</th>
+            <th class="num">Fichas pagas</th>
+            <th class="num">% do total</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-mensal"></tbody>
+      </table>
+    </div>
+
+  </section>
+
+</main>
+
+<footer class="note">
+  Protótipo navegável com dados simulados em memória, apenas para demonstrar as telas e o fluxo do sistema — não há banco de dados real nem persistência entre sessões. Ao evoluir para produção, cada tela aqui corresponde a uma consulta/gravação num banco de dados de verdade (clientes, fichas, cobradores, vales e fechamentos).
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — preencha estas duas linhas com os dados do seu projeto Supabase
+   (Project Settings → API). Deixando vazio, o sistema abre em modo demonstração.
+   ============================================================ */
+var SUPABASE_URL = 'https://yhccdmwlcjotdbjyogf.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_s_w3VpfZzDWVpnp--b3hIA_ah-6MxRs';
+var DOMINIO_EMAIL = 'rotacerta.app'; // precisa ser igual ao da função email_dominio() do banco
+window.RC = (function(){
+  var real = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+  function hoje(){ return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date()); }
+  return { CONFIG: { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY, dominio: DOMINIO_EMAIL }, real: real, hoje: hoje };
+})();
+</script>
+<script>
+// ============================================================
+// "Banco de dados" simulado em memória — só para o protótipo
+// ============================================================
+
+let HOJE = (window.RC && RC.real) ? RC.hoje() : "2026-09-04"; // no modo demonstração a data é fixa
+
+let cobradores = [
+  { id: 'c1', nome: 'Marcos Andrade', bairros: ['Centro', 'São Brás'], login: 'marcos.andrade', senha: '1234', periodicidade: 'semanal' },
+  { id: 'c2', nome: 'Juliana Reis', bairros: ['Bairro Novo', 'Marco'], login: 'juliana.reis', senha: '1234', periodicidade: 'semanal' },
+  { id: 'c3', nome: 'Paulo Ferreira', bairros: ['Zona Sul', 'Guamá'], login: 'paulo.ferreira', senha: '1234', periodicidade: 'mensal' },
+];
+
+const clientes = [
+  { id: 'cl1', nome: 'Dona Marlene', endereco: 'Rua das Acácias, 120', bairro: 'Centro' },
+  { id: 'cl2', nome: 'Seu Raimundo', endereco: 'Av. Beira Rio, 45', bairro: 'São Brás' },
+  { id: 'cl3', nome: 'Cláudia Nunes', endereco: 'Trav. São José, 88', bairro: 'Centro' },
+  { id: 'cl4', nome: 'Antônio Melo', endereco: 'Rua 7 de Setembro, 210', bairro: 'Bairro Novo' },
+  { id: 'cl5', nome: 'Fátima Souza', endereco: 'Rua das Palmeiras, 33', bairro: 'Marco' },
+  { id: 'cl6', nome: 'Edivaldo Costa', endereco: 'Rua do Comércio, 5', bairro: 'Zona Sul' },
+];
+
+function cobradorPorBairro(bairro){
+  return cobradores.find(c => c.ativo !== false && c.bairros.includes(bairro))?.id || null;
+}
+
+// fichas: numero, clienteId, cobradorId, mercadoria, valorTotal, valorPago, parcela, vencimento, status, formaPagamento
+let fichas = [
+  { numero: '000512', clienteId:'cl1', cobradorId:'c1', mercadoria:'Panelas', valorTotal:340, valorPago:255, parcela: 85, vencimento: HOJE, status:'pendente' },
+  { numero: '000513', clienteId:'cl2', cobradorId:'c1', mercadoria:'Roupas', valorTotal:480, valorPago:360, parcela: 120, vencimento: HOJE, status:'pendente' },
+  { numero: '000514', clienteId:'cl3', cobradorId:'c1', mercadoria:'Utensílios', valorTotal:60, valorPago:0, parcela: 60, vencimento: HOJE, status:'pendente' },
+  { numero: '000515', clienteId:'cl4', cobradorId:'c2', mercadoria:'Roupas de cama', valorTotal:380, valorPago:285, parcela: 95, vencimento: HOJE, status:'pendente' },
+  { numero: '000516', clienteId:'cl5', cobradorId:'c2', mercadoria:'Eletrônicos', valorTotal:600, valorPago:450, parcela: 150, vencimento: HOJE, status:'pendente' },
+  { numero: '000517', clienteId:'cl6', cobradorId:'c3', mercadoria:'Calçados', valorTotal:280, valorPago:210, parcela: 70, vencimento: HOJE, status:'pendente' },
+  // histórico da semana (já fechado, usado nos relatórios)
+  { numero: '000480', clienteId:'cl1', cobradorId:'c1', mercadoria:'Panelas', valorTotal:340, valorPago:170, parcela:300, vencimento:'2026-09-01', status:'paga', formaPagamento:'pix' },
+  { numero: '000481', clienteId:'cl2', cobradorId:'c1', mercadoria:'Roupas', valorTotal:480, valorPago:150, parcela:210, vencimento:'2026-09-01', status:'paga', formaPagamento:'dinheiro' },
+  { numero: '000482', clienteId:'cl4', cobradorId:'c2', mercadoria:'Roupas de cama', valorTotal:380, valorPago:95, parcela:260, vencimento:'2026-09-02', status:'paga', formaPagamento:'pix' },
+  { numero: '000483', clienteId:'cl5', cobradorId:'c2', mercadoria:'Eletrônicos', valorTotal:600, valorPago:270, parcela:180, vencimento:'2026-09-02', status:'paga', formaPagamento:'dinheiro' },
+  { numero: '000484', clienteId:'cl6', cobradorId:'c3', mercadoria:'Calçados', valorTotal:280, valorPago:70, parcela:340, vencimento:'2026-09-03', status:'paga', formaPagamento:'pix' },
+  { numero: '000485', clienteId:'cl3', cobradorId:'c1', mercadoria:'Utensílios', valorTotal:60, valorPago:60, parcela:150, vencimento:'2026-09-03', status:'paga', formaPagamento:'dinheiro' },
+  // exemplo de ficha já encerrada (quitada), foi para o arquivo
+  { numero: '000401', clienteId:'cl3', cobradorId:'c1', mercadoria:'Enxoval', valorTotal:200, valorPago:200, parcela:0, vencimento:'2026-08-20', status:'paga', quitada:true },
+];
+
+fichas.push(
+  { numero:'000510', clienteId:'cl2', cobradorId:'c1', mercadoria:'Roupas', valorTotal:300, valorPago:100, parcela:50, vencimento:'2026-08-29', status:'pendente' },
+  { numero:'000511', clienteId:'cl4', cobradorId:'c2', mercadoria:'Utensílios', valorTotal:200, valorPago:0, parcela:40, vencimento:'2026-08-31', status:'remarcada', novaData:'2026-09-02' }
+);
+
+let vales = [
+  { cobradorId:'c1', valor: 150, data:'2026-09-02' },
+  { cobradorId:'c3', valor: 100, data:'2026-09-03' },
+];
+
+let fechamentoConfirmado = false;
+
+// controla se o cobrador já enviou o resultado do dia para o admin
+let enviosDia = {}; // { cobradorId: true/false }
+// controla se o admin já conferiu os valores e deu "ok" para aquele cobrador hoje
+let confirmacoesAdmin = {}; // { cobradorId: true/false }
+// guarda o que foi apurado na conferência (valor entregue, diferença) por cobrador
+let entregasRegistradas = {}; // { cobradorId: { valorEntregue, diferenca } }
+let cobradorInspecionadoId = null;
+
+// controla a prestação de contas por cobrador (não é mais fixa no sábado)
+let ultimaPrestacao = {};   // { cobradorId: 'YYYY-MM-DD' da última prestação de contas, ou undefined = desde o início }
+let saldosAcumulados = {};  // { cobradorId: saldo negativo (dívida) que ficou da prestação anterior, 0 se não deve nada }
+let prestacaoAberta = null; // cobradorId cuja seção de prestação de contas está aberta no momento
+
+// ============================================================
+// Utilidades
+// ============================================================
+function formatBRL(v){
+  return v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+}
+function clienteNome(id){ return clientes.find(c => c.id===id)?.nome || '—'; }
+function clienteEndereco(id){ return clientes.find(c => c.id===id)?.endereco || ''; }
+function clienteReferencia(id){ return clientes.find(c => c.id===id)?.referencia || ''; }
+function cobradorNome(id){ return cobradores.find(c => c.id===id)?.nome || '—'; }
+
+// ============================================================
+// Navegação entre papéis
+// ============================================================
+function setRole(role){
+  document.getElementById('view-cobrador').classList.toggle('active', role==='cobrador');
+  document.getElementById('view-admin').classList.toggle('active', role==='admin');
+  document.getElementById('btn-role-cobrador').classList.toggle('active', role==='cobrador');
+  document.getElementById('btn-role-admin').classList.toggle('active', role==='admin');
+  if(role==='admin') renderAdmin();
+}
+
+function setAdminTab(tab){
+  document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('admin-'+tab).classList.add('active');
+}
+
+// ============================================================
+// VISÃO DO COBRADOR
+// ============================================================
+function populateCobradorSelect(){
+  const sel = document.getElementById('select-cobrador');
+  sel.innerHTML = cobradoresAtivos().map(c => `<option value="${c.id}">${c.nome} — ${c.bairros.join(', ')}</option>`).join('');
+}
+
+function renderCobrador(){
+  const cobradorId = document.getElementById('select-cobrador').value;
+  const cobrador = cobradores.find(c=>c.id===cobradorId);
+  document.getElementById('rota-titulo').textContent = cobrador.bairros.join(', ');
+  document.getElementById('rota-data').textContent = 'Cobranças de hoje · ' + formatDataExtenso(HOJE);
+
+  const doDia = fichas.filter(f => f.cobradorId===cobradorId && f.vencimento===HOJE && !f.cancelada);
+  const enviado = enviosDia[cobradorId] === true;
+  const lista = document.getElementById('lista-fichas');
+  lista.innerHTML = doDia.map(f => renderFichaCard(f, enviado)).join('') ||
+    '<p style="color:var(--ink-soft)">Nenhuma ficha atribuída para hoje.</p>';
+
+  // rodapé do dia
+  const pagas = doDia.filter(f=>f.status==='paga');
+  const pendentes = doDia.filter(f=>f.status==='pendente');
+  const totalDia = pagas.reduce((s,f)=>s+(f.valorRecebidoHoje ?? f.parcela),0);
+  const totalPix = pagas.filter(f=>f.formaPagamento==='pix').reduce((s,f)=>s+(f.valorRecebidoHoje ?? f.parcela),0);
+  const totalDinheiro = pagas.filter(f=>f.formaPagamento==='dinheiro').reduce((s,f)=>s+(f.valorRecebidoHoje ?? f.parcela),0);
+
+  document.getElementById('rodape-dia').innerHTML = `
+    <div class="stat"><span class="label">Total cobrado hoje</span><span class="value">${formatBRL(totalDia)}</span></div>
+    <div class="stat"><span class="label">Recebido em Pix</span><span class="value">${formatBRL(totalPix)}</span></div>
+    <div class="stat"><span class="label">A entregar em espécie</span><span class="value">${formatBRL(totalDinheiro)}</span></div>
+  `;
+
+  // envio do resultado do dia — só depois que toda a rota foi processada
+  const envioBox = document.getElementById('envio-dia');
+  if(enviado){
+    envioBox.className = 'envio-box enviado';
+    envioBox.innerHTML = `<p>✓ Resultado do dia já enviado ao administrador.</p>`;
+  } else if(doDia.length === 0){
+    envioBox.className = 'envio-box';
+    envioBox.innerHTML = `
+      <p>Nenhuma ficha vencia hoje — se não trabalhou (domingo, feriado etc.), envie o resultado do dia mesmo assim para o administrador poder fechar o dia.</p>
+      <button class="btn primary" onclick="enviarResultadoDia()">Enviar resultado do dia</button>
+    `;
+  } else if(pendentes.length > 0){
+    envioBox.className = 'envio-box';
+    envioBox.innerHTML = `
+      <p>${pendentes.length} ficha(s) ainda não foram visitadas hoje. Ao enviar, elas ficam automaticamente marcadas para a cobrança de amanhã.</p>
+      <button class="btn primary" onclick="enviarResultadoDia()">Enviar resultado do dia</button>
+    `;
+  } else {
+    envioBox.className = 'envio-box';
+    envioBox.innerHTML = `
+      <p>Toda a rota de hoje foi processada. Confira os valores acima e envie o resultado para o administrador.</p>
+      <button class="btn primary" onclick="enviarResultadoDia()">Enviar resultado do dia</button>
+    `;
+  }
+}
+
+function enviarResultadoDia(){
+  const cobradorId = document.getElementById('select-cobrador').value;
+  const doDia = fichas.filter(f => f.cobradorId===cobradorId && f.vencimento===HOJE && !f.cancelada);
+  doDia.forEach(f=>{
+    if(f.status === 'pendente'){
+      f.status = 'remarcada';
+      f.novaData = proximoDia(HOJE);
+      f.remarcacaoAutomatica = true;
+    }
+  });
+  enviosDia[cobradorId] = true;
+  renderCobrador();
+}
+
+function renderFichaCard(f, enviado){
+  const statusClass = f.status==='paga' ? 'paga' : (f.status==='remarcada' ? 'remarcada' : '');
+  const stamp = f.status==='paga'
+    ? `<div class="stamp">PAGO · ${f.formaPagamento==='pix' ? 'PIX' : 'DINHEIRO'}${f.proximaData ? ' · PRÓX ' + new Date(f.proximaData+'T00:00:00').toLocaleDateString('pt-BR') : ''}</div>`
+    : (f.status==='remarcada' ? `<div class="stamp" style="border-color:var(--gold);color:var(--gold);">${f.remarcacaoAutomatica ? 'NÃO VISITADA' : 'REMARCADA'}${f.novaData ? ' · ' + new Date(f.novaData+'T00:00:00').toLocaleDateString('pt-BR') : ''}</div>` : '');
+
+  const restante = f.valorTotal - f.valorPago;
+
+  const actions = (f.status==='pendente' && !enviado) ? `
+    <div class="ficha-actions">
+      <button class="btn primary" onclick="abrirBaixa('${f.numero}')">Dar baixa</button>
+      <button class="btn ghost" onclick="abrirRemarcar('${f.numero}')">Remarcar</button>
+    </div>
+    <div class="inline-form" id="baixa-${f.numero}">
+      <input type="number" id="valorpago-${f.numero}" value="${f.parcela}" min="0" step="5" style="width:110px;" oninput="atualizarCampoProximaData('${f.numero}')">
+      <select id="forma-${f.numero}">
+        <option value="dinheiro">Dinheiro</option>
+        <option value="pix">Pix</option>
+      </select>
+      <div id="proxima-data-wrap-${f.numero}" style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:0.8rem; color:var(--ink-soft);">Próxima cobrança:</span>
+        <input type="date" id="proxima-data-${f.numero}" min="${HOJE}">
+      </div>
+      <button class="btn primary" onclick="confirmarBaixa('${f.numero}')">Confirmar pagamento</button>
+      <div id="baixa-erro-${f.numero}" style="width:100%; font-size:0.8rem; color:var(--stamp-red);"></div>
+    </div>
+    <div class="inline-form" id="remarcar-${f.numero}">
+      <input type="date" id="nova-data-${f.numero}" min="${HOJE}">
+      <button class="btn primary" onclick="confirmarRemarcacao('${f.numero}')">Confirmar nova data</button>
+    </div>
+  ` : '';
+
+  const proxima = (f.status==='paga' && !f.quitada && !confirmacoesAdmin[f.cobradorId]) ? `
+    <div class="inline-form show" style="margin-top:8px;">
+      <span style="font-size:.8rem;color:var(--ink-soft);">Próxima cobrança:</span>
+      <input type="date" id="prox-${f.numero}" value="${f.proximaData||''}" min="${HOJE}">
+      <button class="btn ghost" onclick="salvarProximaData('${f.numero}')">Salvar data</button>
+    </div>` : '';
+  const ultimoPg = (f.pagamentos || []).filter(p => !p.inicial).slice(-1)[0];
+  const recibo = (f.status==='paga' && ultimoPg && ultimoPg.data===HOJE) ? `
+    <div class="ficha-actions"><button class="btn ghost" onclick="enviarRecibo('${f.numero}')">Enviar recibo (WhatsApp)</button></div>` : '';
+  return `
+    <div class="ficha-card ${statusClass}">
+      ${stamp}
+      <div class="ficha-top">
+        <div>
+          <div class="ficha-num">FICHA Nº ${f.numero} · ${f.mercadoria}</div>
+          <h3>${clienteNome(f.clienteId)}</h3>
+          <div class="ficha-endereco">${clienteEndereco(f.clienteId)} · <a href="${mapaLink(f.clienteId)}" target="_blank" rel="noopener">Abrir no mapa</a></div>
+          ${clienteReferencia(f.clienteId) ? `<div class="ficha-endereco" style="font-style:italic;">Ref.: ${clienteReferencia(f.clienteId)}</div>` : ''}
+          <div class="ficha-endereco mono">Total: ${formatBRL(f.valorTotal)} · Restante: ${formatBRL(restante)}</div>
+        </div>
+        <div>
+          <div class="ficha-valor">${formatBRL(f.parcela)}</div>
+          <div style="font-size:0.68rem; color:var(--ink-soft); text-align:right;">parcela</div>
+        </div>
+      </div>
+      ${actions}${proxima}${recibo}
+    </div>
+  `;
+}
+
+function abrirBaixa(numero){
+  document.getElementById('remarcar-'+numero)?.classList.remove('show');
+  document.getElementById('baixa-'+numero)?.classList.toggle('show');
+  atualizarCampoProximaData(numero);
+}
+function atualizarCampoProximaData(numero){
+  const f = fichas.find(x=>x.numero===numero);
+  const valorPagoAgora = parseFloat(document.getElementById('valorpago-'+numero)?.value) || 0;
+  const restanteAposPagamento = f.valorTotal - (f.valorPago + valorPagoAgora);
+  const wrap = document.getElementById('proxima-data-wrap-'+numero);
+  if(wrap) wrap.style.display = restanteAposPagamento > 0 ? 'flex' : 'none';
+}
+function abrirRemarcar(numero){
+  document.getElementById('baixa-'+numero)?.classList.remove('show');
+  document.getElementById('remarcar-'+numero)?.classList.toggle('show');
+}
+function confirmarBaixa(numero){
+  const forma = document.getElementById('forma-'+numero).value;
+  const valorPagoAgora = parseFloat(document.getElementById('valorpago-'+numero).value);
+  const f = fichas.find(x=>x.numero===numero);
+  const erro = document.getElementById('baixa-erro-'+numero);
+  erro.textContent = '';
+  if(!valorPagoAgora || valorPagoAgora <= 0) return;
+
+  const novoValorPago = Math.min(f.valorTotal, f.valorPago + valorPagoAgora);
+  const vaiQuitar = novoValorPago >= f.valorTotal;
+
+  let proximaData = null;
+  if(!vaiQuitar){
+    proximaData = document.getElementById('proxima-data-'+numero).value;
+    if(!proximaData){
+      erro.textContent = 'A ficha ainda não vai ser quitada — escolha a data da próxima cobrança.';
+      return;
+    }
+  }
+
+  (f.pagamentos ||= []).push({ data: HOJE, valor: valorPagoAgora, forma, cobradorId: f.cobradorId });
+  f.valorRecebidoHoje = valorPagoAgora; // usado nos totais do dia/semana/mês
+  f.valorPago = novoValorPago;
+  f.formaPagamento = forma;
+  f.status = 'paga';
+  f.quitada = vaiQuitar;
+  if(proximaData) f.proximaData = proximaData; // data em que a ficha volta a aparecer pro cobrador
+  renderCobrador();
+}
+function confirmarRemarcacao(numero){
+  const novaData = document.getElementById('nova-data-'+numero).value;
+  const f = fichas.find(x=>x.numero===numero);
+  if(!novaData) return;
+  f.status = 'remarcada';
+  f.novaData = novaData;
+  renderCobrador();
+}
+
+function formatDataExtenso(iso){
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
+}
+function proximoDia(iso){
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+1);
+  return d.toISOString().slice(0,10);
+}
+
+// ============================================================
+// VISÃO DO ADMINISTRADOR
+// ============================================================
+function renderAdmin(){
+  document.getElementById('conf-data').textContent = formatDataExtenso(HOJE);
+  renderConferencia();
+  renderVales();
+  renderMensal();
+  renderRotas();
+  renderArquivo();
+  renderFichas(); renderAtrasadas(); renderNumeracao(); renderHistorico();
+  renderCobradores();
+  populateValeSelect();
+  populateBairroSelect();
+}
+
+// ---------- Rotas por bairro ----------
+function todosBairros(){
+  return [...new Set(cobradores.flatMap(c=>c.bairros))];
+}
+function populateBairroSelect(){
+  const sel = document.getElementById('lancar-bairro');
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Bairro</option>' +
+    todosBairros().map(b=>`<option value="${b}">${b}</option>`).join('');
+  sel.value = atual;
+}
+// ---------- Cadastro de cobradores ----------
+function renderCobradores(){
+  const tbody = document.getElementById('tabela-cobradores');
+  tbody.innerHTML = cobradores.map(c => `
+    <tr>
+      <td>${linkCobrador(c.id, c.nome)}</td>
+      <td class="mono">${c.login}</td>
+      <td>${c.periodicidade === 'mensal' ? 'Por mês' : 'Por semana'}</td>
+      <td>${c.bairros.join(', ') || '—'}</td>
+      <td><input type="text" id="ns-${c.id}" placeholder="nova senha" style="width:110px;"> <button class="btn ghost" onclick="trocarSenha('${c.id}')">Salvar</button></td>
+      <td>${c.ativo === false ? 'Desativado' : 'Ativo'} <button class="btn ghost" onclick="alternarAtivoCobrador('${c.id}')">${c.ativo === false ? 'Reativar' : 'Desativar'}</button></td>
+    </tr>
+  `).join('');
+}
+
+function cadastrarCobrador(){
+  const nome = document.getElementById('cobrador-nome').value.trim();
+  const login = document.getElementById('cobrador-login').value.trim();
+  const senha = document.getElementById('cobrador-senha').value.trim();
+  const periodicidade = document.getElementById('cobrador-periodicidade').value;
+  const status = document.getElementById('cobrador-status');
+
+  if(!nome || !login || !senha){
+    status.textContent = 'Preencha nome, login e senha.';
+    status.style.color = 'var(--stamp-red)';
+    return;
+  }
+  if(cobradores.some(c => c.login === login)){
+    status.textContent = 'Já existe um cobrador com esse login.';
+    status.style.color = 'var(--stamp-red)';
+    return;
+  }
+
+  const novoId = 'c' + (cobradores.length + 1);
+  cobradores.push({ id: novoId, nome, login, senha, periodicidade, bairros: [] });
+
+  status.textContent = `Cobrador ${nome} cadastrado. Agora cadastre os bairros da rota dele em "Rotas por bairro".`;
+  status.style.color = 'var(--ledger-green)';
+  document.getElementById('cobrador-nome').value = '';
+  document.getElementById('cobrador-login').value = '';
+  document.getElementById('cobrador-senha').value = '';
+
+  renderCobradores();
+  renderRotas();
+  populateValeSelect();
+  populateCobradorSelect();
+}
+
+// ---------- Rotas por bairro ----------
+function renderRotas(){
+  const tbody = document.getElementById('tabela-rotas');
+  tbody.innerHTML = cobradores.map(c=>`
+    <tr>
+      <td>${linkCobrador(c.id, c.nome)}</td>
+      <td>${c.bairros.join(', ')}</td>
+      <td>
+        <input type="text" id="novo-bairro-${c.id}" placeholder="Nome do bairro" style="padding:5px 8px; border:1px solid var(--line); border-radius:3px; font-size:0.82rem;">
+        <button class="btn ghost" style="padding:5px 10px; font-size:0.78rem;" onclick="adicionarBairro('${c.id}')">Adicionar</button>
+      </td>
+    </tr>
+  `).join('');
+}
+function adicionarBairro(cobradorId){
+  const input = document.getElementById('novo-bairro-'+cobradorId);
+  const bairro = input.value.trim();
+  if(!bairro) return;
+  cobradores.find(c=>c.id===cobradorId).bairros.push(bairro);
+  renderRotas();
+  populateBairroSelect();
+}
+
+// ---------- Lançar ficha ----------
+let clienteSelecionadoId = null;
+function buscarClienteExistente(){
+  const nome = document.getElementById('lancar-nome').value.trim().toLowerCase();
+  const bairro = document.getElementById('lancar-bairro').value;
+  const info = document.getElementById('cliente-encontrado');
+  clienteSelecionadoId = null;
+
+  if(nome.length > 2){
+    const encontrados = clientes.filter(c => c.nome.toLowerCase().includes(nome));
+
+    if(encontrados.length === 1){
+      const existente = encontrados[0];
+      clienteSelecionadoId = existente.id;
+      document.getElementById('lancar-endereco').value = existente.endereco;
+      document.getElementById('lancar-referencia').value = existente.referencia || '';
+      document.getElementById('lancar-bairro').value = existente.bairro;
+    }
+
+    if(encontrados.length > 0){
+      const listaFichas = encontrados.map(cli => {
+        const fichasCliente = fichas.filter(f => f.clienteId === cli.id);
+        const itens = fichasCliente.length
+          ? fichasCliente.map(f => `Nº ${f.numero} · ${f.mercadoria} — ${f.quitada ? 'quitada' : 'em cobrança'}`).join('<br>')
+          : 'sem fichas registradas ainda';
+        return `<strong>${cli.nome}</strong> (${cli.endereco})<br>${itens}`;
+      }).join('<hr style="border:none; border-top:1px dashed var(--line); margin:8px 0;">');
+
+      info.style.display = 'block';
+      info.innerHTML = encontrados.length === 1
+        ? `Cliente já cadastrado — esta será uma nova compra para ele:<br>${listaFichas}`
+        : `Encontrados ${encontrados.length} clientes com esse nome — confira se já existe cadastro antes de lançar:<br>${listaFichas}`;
+    } else {
+      info.style.display = 'none';
+    }
+  } else {
+    info.style.display = 'none';
+  }
+
+  const bairroAtual = document.getElementById('lancar-bairro').value;
+  const destino = document.getElementById('rota-destino');
+  if(bairroAtual){
+    const cobradorId = cobradorPorBairro(bairroAtual);
+    destino.textContent = cobradorId
+      ? `Vai automaticamente para a rota de ${cobradorNome(cobradorId)}.`
+      : `Nenhum cobrador atende esse bairro ainda — cadastre a rota primeiro.`;
+  } else {
+    destino.textContent = '';
+  }
+}
+
+function lancarFicha(){
+  const nome = document.getElementById('lancar-nome').value.trim();
+  const bairro = document.getElementById('lancar-bairro').value;
+  const endereco = document.getElementById('lancar-endereco').value.trim();
+  const referencia = document.getElementById('lancar-referencia').value.trim();
+  const mercadoria = document.getElementById('lancar-mercadoria').value.trim();
+  const valorTotal = parseFloat(document.getElementById('lancar-total').value);
+  const parcela = parseFloat(document.getElementById('lancar-parcela').value);
+  const vencimento = document.getElementById('lancar-vencimento').value || HOJE;
+  const status = document.getElementById('lancar-status');
+
+  if(!nome || !bairro || !valorTotal || !parcela){
+    status.textContent = 'Preencha nome, bairro, valor total e valor da parcela.';
+    status.style.color = 'var(--stamp-red)';
+    return;
+  }
+  const cobradorId = cobradorPorBairro(bairro);
+  if(!cobradorId){
+    status.textContent = 'Esse bairro ainda não está na rota de nenhum cobrador. Cadastre em "Rotas por bairro".';
+    status.style.color = 'var(--stamp-red)';
+    return;
+  }
+
+  const digitado = document.getElementById('lancar-numero').value.trim();
+  const numeroEscolhido = digitado ? digitado.padStart(6,'0') : proximoNumero();
+  if(fichas.some(x=>x.numero===numeroEscolhido)){
+    status.textContent = `O número ${numeroEscolhido} já está em uso. Confira a caderneta ou deixe o campo vazio para o número automático.`;
+    status.style.color = 'var(--stamp-red)';
+    return;
+  }
+  let clienteId = clienteSelecionadoId;
+  if(!clienteId){
+    clienteId = 'cl' + (clientes.length + 1);
+    clientes.push({ id: clienteId, nome, endereco, bairro, referencia, telefone: document.getElementById('lancar-telefone').value.trim() });
+  } else {
+    // cliente já existia — mantém a referência atualizada com o que foi digitado agora
+    const clienteExistente = clientes.find(c=>c.id===clienteId);
+    if(clienteExistente){ clienteExistente.referencia = referencia; const t = document.getElementById('lancar-telefone').value.trim(); if(t) clienteExistente.telefone = t; }
+  }
+
+  const novoNumero = numeroEscolhido;
+  fichas.push({
+    numero: novoNumero, clienteId, cobradorId, mercadoria: mercadoria || 'Mercadoria',
+    valorTotal, valorPago: 0, parcela, vencimento, status: 'pendente', pagamentos: []
+  });
+
+  status.textContent = `Ficha ${novoNumero} lançada para ${cobradorNome(cobradorId)}.`;
+  status.style.color = 'var(--ledger-green)';
+  clienteSelecionadoId = null;
+  document.getElementById('lancar-numero').value = '';
+  renderFichas(); renderAtrasadas(); renderNumeracao();
+  document.getElementById('lancar-nome').value = '';
+  document.getElementById('lancar-endereco').value = '';
+  document.getElementById('lancar-referencia').value = '';
+  document.getElementById('lancar-mercadoria').value = '';
+  document.getElementById('lancar-total').value = '';
+  document.getElementById('lancar-parcela').value = '';
+  document.getElementById('cliente-encontrado').style.display = 'none';
+  renderConferencia();
+}
+
+// ---------- Fichas encerradas ----------
+let arquivoVisivel = false;
+
+function toggleArquivoVisivel(){
+  arquivoVisivel = !arquivoVisivel;
+  document.getElementById('btn-toggle-arquivo').textContent = arquivoVisivel ? 'Ocultar fichas quitadas' : 'Mostrar fichas quitadas';
+  renderArquivo();
+}
+
+function renderArquivo(){
+  const tbody = document.getElementById('tabela-arquivo');
+  const busca = (document.getElementById('arquivo-busca')?.value || '').trim().toLowerCase();
+  const encerradas = fichas.filter(f=>f.quitada);
+
+  if(!arquivoVisivel && !busca){
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink-soft);">Busque por nome do cliente ou clique em "Mostrar fichas quitadas" para ver o arquivo.</td></tr>';
+    return;
+  }
+
+  const filtradas = busca
+    ? encerradas.filter(f => clienteNome(f.clienteId).toLowerCase().includes(busca))
+    : encerradas;
+
+  tbody.innerHTML = filtradas.length ? filtradas.map(f=>`
+    <tr>
+      <td class="mono">${f.numero}</td>
+      <td>${clienteNome(f.clienteId)}</td>
+      <td>${f.mercadoria}${f.cancelada ? ' <i>(cancelada: ' + h(f.motivoCancelamento || '') + ')</i>' : ''}</td>
+      <td class="num mono">${formatBRL(f.valorTotal)}</td>
+      <td>${cobradorNome(f.cobradorId)}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="5" style="color:var(--ink-soft);">Nenhuma ficha quitada encontrada.</td></tr>';
+}
+
+function iniciais(nome){
+  return nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase();
+}
+
+function renderConferencia(){
+  const tbody = document.getElementById('tabela-conferencia');
+  tbody.innerHTML = cobradoresAtivos().map(c => {
+    const doDia = fichas.filter(f=>f.cobradorId===c.id && f.vencimento===HOJE && !f.cancelada);
+    const saiu = doDia.length;
+    const pagas = doDia.filter(f=>f.status==='paga').length;
+    const remarcadas = doDia.filter(f=>f.status==='remarcada' && !f.remarcacaoAutomatica).length;
+    const naoVisitadas = doDia.filter(f=>f.status==='remarcada' && f.remarcacaoAutomatica).length;
+    const enviado = enviosDia[c.id] === true;
+    const confirmado = confirmacoesAdmin[c.id] === true;
+    const temNotificacao = enviado && !confirmado;
+    const bate = confirmado;
+    const statusFinal = !enviado
+      ? '<span class="badge wait">Aguardando envio</span>'
+      : (confirmado ? '<span class="badge ok">OK dado ✓</span>' : '<span class="badge wait">Aguardando conferência</span>');
+    return `
+      <tr>
+        <td>
+          <div class="avatar-wrap">
+            <div class="avatar">${iniciais(c.nome)}</div>
+            ${temNotificacao ? '<div class="notif-dot" title="Resultado do dia enviado"></div>' : ''}
+            <span>${linkCobrador(c.id, c.nome)}</span>
+          </div>
+        </td>
+        <td class="num mono">${saiu}</td>
+        <td class="num mono">${pagas}</td>
+        <td class="num mono">${remarcadas}</td>
+        <td class="num mono">${naoVisitadas}</td>
+        <td>${enviado ? '<span class="badge ok">Enviado</span>' : '<span class="badge wait">Aguardando</span>'}</td>
+        <td>${statusFinal}</td>
+        <td><button class="btn ghost" style="padding:5px 10px; font-size:0.78rem;" onclick="inspecionarCobrador('${c.id}')">Inspecionar</button></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function valorEsperadoDinheiro(cobradorId){
+  return fichas
+    .filter(f=>f.cobradorId===cobradorId && f.vencimento===HOJE && !f.cancelada && f.status==='paga' && f.formaPagamento==='dinheiro')
+    .reduce((s,f)=> s + (f.valorRecebidoHoje ?? f.parcela), 0);
+}
+function valorEsperadoPix(cobradorId){
+  return fichas
+    .filter(f=>f.cobradorId===cobradorId && f.vencimento===HOJE && !f.cancelada && f.status==='paga' && f.formaPagamento==='pix')
+    .reduce((s,f)=> s + (f.valorRecebidoHoje ?? f.parcela), 0);
+}
+
+function inspecionarCobrador(cobradorId){
+  cobradorInspecionadoId = cobradorId;
+  const c = cobradores.find(x=>x.id===cobradorId);
+  const doDia = fichas.filter(f=>f.cobradorId===cobradorId && f.vencimento===HOJE && !f.cancelada);
+  const pendentesHoje = doDia.filter(f=>f.status==='pendente').length;
+  const pagasHoje = doDia.filter(f=>f.status==='paga').length;
+  const remarcadasHoje = doDia.filter(f=>f.status==='remarcada' && !f.remarcacaoAutomatica).length;
+  const naoVisitadasHoje = doDia.filter(f=>f.status==='remarcada' && f.remarcacaoAutomatica).length;
+  const totalCarteira = fichas.filter(f=>f.cobradorId===cobradorId && !f.quitada).length;
+
+  document.getElementById('detalhe-cobrador-nome').textContent = `Detalhe — ${c.nome}`;
+  document.getElementById('detalhe-pendentes-hoje').textContent = pendentesHoje;
+  document.getElementById('detalhe-pagas-hoje').textContent = pagasHoje;
+  document.getElementById('detalhe-remarcadas-hoje').textContent = remarcadasHoje;
+  document.getElementById('detalhe-nao-visitadas-hoje').textContent = naoVisitadasHoje;
+  document.getElementById('detalhe-total-carteira').textContent = totalCarteira;
+  document.getElementById('detalhe-cobrador-panel').classList.add('show');
+
+  renderConfValores();
+  renderPrestacaoContas();
+}
+
+function renderConfValores(){
+  const cobradorId = cobradorInspecionadoId;
+  const container = document.getElementById('conf-valores-container');
+  if(!cobradorId){ container.innerHTML=''; return; }
+
+  const enviado = enviosDia[cobradorId] === true;
+  const confirmado = confirmacoesAdmin[cobradorId] === true;
+
+  if(!enviado){
+    container.innerHTML = `<div class="conf-valores"><p style="color:var(--ink-soft); font-size:0.85rem;">O cobrador ainda não enviou o resultado do dia — a conferência de valores fica disponível assim que ele enviar.</p></div>`;
+    return;
+  }
+
+  const esperadoPix = valorEsperadoPix(cobradorId);
+  const esperadoDinheiro = valorEsperadoDinheiro(cobradorId);
+
+  if(confirmado){
+    const registro = entregasRegistradas[cobradorId] || { valorEntregue: esperadoDinheiro, diferenca: 0 };
+    container.innerHTML = `
+      <div class="conf-valores">
+        <div class="linha"><span>Pix conferido no sistema</span><span class="mono">${formatBRL(esperadoPix)}</span></div>
+        <div class="linha"><span>Valor entregue em espécie</span><span class="mono">${formatBRL(registro.valorEntregue)}</span></div>
+        ${registro.diferenca > 0
+          ? `<div class="diferenca-alerta">Diferença de ${formatBRL(registro.diferenca)} não repassada — lançada como vale para o cobrador.</div>`
+          : `<div class="diferenca-ok">Valores conferem. OK dado pelo administrador.</div>`}
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="conf-valores">
+      <div class="linha"><span>Pix recebido (conforme sistema)</span><span class="mono">${formatBRL(esperadoPix)}</span></div>
+      <div class="linha"><span>Dinheiro esperado (conforme sistema)</span><span class="mono">${formatBRL(esperadoDinheiro)}</span></div>
+      <div class="linha">
+        <span>Valor que o cobrador entregou em espécie</span>
+        <input type="number" id="valor-entregue-input" value="${esperadoDinheiro}" step="5" min="0" oninput="atualizarDiferencaPreview()">
+      </div>
+      <div id="diferenca-preview"></div>
+      <div style="margin-top:14px; display:flex; justify-content:flex-end;">
+        <button class="btn primary" onclick="confirmarEntregaCobrador()">Confirmar valores e dar OK</button>
+      </div>
+    </div>
+  `;
+  atualizarDiferencaPreview();
+}
+
+function atualizarDiferencaPreview(){
+  const cobradorId = cobradorInspecionadoId;
+  const esperadoDinheiro = valorEsperadoDinheiro(cobradorId);
+  const entregue = parseFloat(document.getElementById('valor-entregue-input').value) || 0;
+  const diferenca = esperadoDinheiro - entregue;
+  const preview = document.getElementById('diferenca-preview');
+  if(diferenca > 0){
+    preview.innerHTML = `<div class="diferenca-alerta">Faltam ${formatBRL(diferenca)} — ao confirmar, esse valor entra como vale do cobrador.</div>`;
+  } else if(diferenca < 0){
+    preview.innerHTML = `<div class="diferenca-alerta">Valor entregue é maior que o esperado em ${formatBRL(Math.abs(diferenca))} — confira antes de confirmar.</div>`;
+  } else {
+    preview.innerHTML = `<div class="diferenca-ok">Valor bate certinho com o sistema.</div>`;
+  }
+}
+
+function confirmarEntregaCobrador(){
+  const cobradorId = cobradorInspecionadoId;
+  const esperadoDinheiro = valorEsperadoDinheiro(cobradorId);
+  const entregue = parseFloat(document.getElementById('valor-entregue-input').value) || 0;
+  const diferenca = Math.max(0, esperadoDinheiro - entregue);
+
+  if(diferenca > 0){
+    vales.push({ cobradorId, valor: diferenca, data: HOJE, origem: 'Diferença não repassada no fechamento do dia' });
+  }
+
+  entregasRegistradas[cobradorId] = { valorEntregue: entregue, diferenca };
+  confirmacoesAdmin[cobradorId] = true;
+
+  renderConferencia();
+  renderVales();
+  renderConfValores();
+}
+
+function confirmarFechamento(){
+  fechamentoConfirmado = true;
+  document.getElementById('fechamento-status').textContent =
+    'Fechamento do dia confirmado. As fichas remarcadas ficarão disponíveis nas novas datas, e as novas fichas de amanhã já podem ser lançadas no app dos cobradores.';
+}
+
+function populateValeSelect(){
+  const sel = document.getElementById('vale-cobrador');
+  sel.innerHTML = cobradoresAtivos().map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+}
+
+function registrarVale(){
+  const cobradorId = document.getElementById('vale-cobrador').value;
+  const valor = parseFloat(document.getElementById('vale-valor').value);
+  if(!valor) return;
+  vales.push({ cobradorId, valor, data: HOJE });
+  document.getElementById('vale-valor').value = '';
+  renderVales();
+  if(prestacaoAberta) renderPrestacaoContas();
+}
+
+function renderVales(){
+  const tbody = document.getElementById('tabela-vales');
+  tbody.innerHTML = vales.map(v => `
+    <tr>
+      <td>${cobradorNome(v.cobradorId)}</td>
+      <td class="mono">${new Date(v.data+'T00:00:00').toLocaleDateString('pt-BR')}</td>
+      <td class="num mono">${formatBRL(v.valor)}</td>
+      <td style="font-size:0.8rem; color:var(--ink-soft);">${v.origem || 'Adiantamento manual'}</td>
+    </tr>
+  `).join('');
+}
+
+// ---------- Prestação de contas sob demanda (via Inspecionar) ----------
+function calcularPrestacao(cobradorId){
+  const desde = ultimaPrestacao[cobradorId]; // undefined = considera desde o início
+  const fichasPeriodo = fichas.filter(f =>
+    f.cobradorId===cobradorId && f.status==='paga' && (!desde || f.vencimento > desde)
+  );
+  const totalCobrado = fichasPeriodo.reduce((s,f)=> s + (f.valorRecebidoHoje ?? f.parcela), 0);
+  const comissao = totalCobrado * 0.10;
+  const valesPeriodo = vales
+    .filter(v => v.cobradorId===cobradorId && (!desde || v.data > desde))
+    .reduce((s,v)=> s+v.valor, 0);
+  const saldoAnterior = saldosAcumulados[cobradorId] || 0; // já vem negativo (dívida) ou 0
+  const saldoFinal = comissao - valesPeriodo + saldoAnterior;
+  return { desde, totalCobrado, comissao, valesPeriodo, saldoAnterior, saldoFinal, qtdFichas: fichasPeriodo.length };
+}
+
+function abrirPrestacaoContas(){
+  prestacaoAberta = cobradorInspecionadoId;
+  renderPrestacaoContas();
+}
+function fecharPrestacaoContas(){
+  prestacaoAberta = null;
+  renderPrestacaoContas();
+}
+
+function renderPrestacaoContas(){
+  const container = document.getElementById('prestacao-contas-container');
+  if(!container) return;
+  const cobradorId = cobradorInspecionadoId;
+  const c = cobradores.find(x=>x.id===cobradorId);
+
+  if(prestacaoAberta !== cobradorId){
+    container.innerHTML = `
+      <div style="margin-top:16px;">
+        <button class="btn ghost" onclick="abrirPrestacaoContas()">Prestar contas com ${c.nome}</button>
+      </div>
+    `;
+    return;
+  }
+
+  const r = calcularPrestacao(cobradorId);
+  container.innerHTML = `
+    <div class="conf-valores" style="margin-top:16px;">
+      <h3 style="font-size:1rem; margin-bottom:8px;">Prestação de contas — ${c.nome} <span style="font-weight:400; font-size:0.8rem; color:var(--ink-soft);">(${c.periodicidade === 'mensal' ? 'combinado por mês' : 'combinado por semana'})</span></h3>
+      <div class="linha"><span>Período considerado</span><span class="mono">${r.desde ? 'desde ' + new Date(r.desde+'T00:00:00').toLocaleDateString('pt-BR') : 'desde o início'}</span></div>
+      <div class="linha"><span>Total cobrado no período (${r.qtdFichas} ficha(s))</span><span class="mono">${formatBRL(r.totalCobrado)}</span></div>
+      <div class="linha"><span>Comissão (10%)</span><span class="mono">${formatBRL(r.comissao)}</span></div>
+      <div class="linha"><span>Vales retirados no período</span><span class="mono">${formatBRL(r.valesPeriodo)}</span></div>
+      ${r.saldoAnterior < 0 ? `<div class="linha"><span>Saldo devedor da prestação anterior</span><span class="mono">${formatBRL(r.saldoAnterior)}</span></div>` : ''}
+      <div class="linha" style="border-top:1px solid var(--line); padding-top:10px; font-weight:600;">
+        <span>Saldo final</span>
+        <span class="mono ${r.saldoFinal>=0 ? 'saldo-pos':'saldo-neg'}">${r.saldoFinal>=0 ? formatBRL(r.saldoFinal)+' a receber' : formatBRL(Math.abs(r.saldoFinal))+' a descontar'}</span>
+      </div>
+      ${r.saldoFinal < 0 ? `<div class="diferenca-alerta">Saldo negativo — esse valor fica registrado como dívida e entra automaticamente na próxima prestação de contas.</div>` : ''}
+      <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn ghost" onclick="fecharPrestacaoContas()">Cancelar</button>
+        <button class="btn primary" onclick="confirmarPrestacaoContas()">Confirmar prestação de contas</button>
+      </div>
+    </div>
+  `;
+}
+
+function confirmarPrestacaoContas(){
+  const cobradorId = cobradorInspecionadoId;
+  const r = calcularPrestacao(cobradorId);
+  saldosAcumulados[cobradorId] = r.saldoFinal < 0 ? r.saldoFinal : 0;
+  ultimaPrestacao[cobradorId] = HOJE;
+  prestacaoAberta = null;
+  renderPrestacaoContas();
+}
+
+function renderMensal(){
+  const tbody = document.getElementById('tabela-mensal');
+  const totais = cobradores.map(c=>{
+    const pagasCobrador = fichas.filter(f=>f.cobradorId===c.id && f.status==='paga');
+    const total = pagasCobrador.reduce((s,f)=>s+(f.valorRecebidoHoje ?? f.parcela),0);
+    return { c, total, qtd: pagasCobrador.length };
+  });
+  const totalGeral = totais.reduce((s,t)=>s+t.total,0);
+  const melhor = totais.reduce((m,t)=> t.total>m.total ? t : m, totais[0]);
+
+  tbody.innerHTML = totais.map(t=>`
+    <tr class="${t.c.id===melhor.c.id ? 'best' : ''}">
+      <td>${linkCobrador(t.c.id, t.c.nome)}${t.c.id===melhor.c.id ? ' 🏆' : ''}</td>
+      <td class="num mono">${formatBRL(t.total)}</td>
+      <td class="num mono">${t.qtd}</td>
+      <td class="num mono">${totalGeral ? ((t.total/totalGeral)*100).toFixed(1) : '0.0'}%</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// Histórico de fichas, atrasadas, numeração e exportação
+// ============================================================
+function dataProxima(f){
+  if(f.quitada) return null;
+  if(f.status==='remarcada') return f.novaData;
+  if(f.status==='pendente') return f.vencimento;
+  return null;
+}
+function diasAtraso(f){
+  const d = dataProxima(f);
+  return d && d < HOJE ? Math.round((new Date(HOJE) - new Date(d)) / 864e5) : 0;
+}
+function listaAtrasadas(){ return fichas.filter(f=>diasAtraso(f)>0).sort((a,b)=>diasAtraso(b)-diasAtraso(a)); }
+function dataBR(iso){ return iso.split('-').reverse().join('/'); }
+
+function situacao(f){
+  if(f.cancelada) return 'Cancelada';
+  if(f.quitada) return 'Quitada';
+  const d = diasAtraso(f);
+  if(d>0) return `<span class="atraso">Atrasada (${d} d)</span>`;
+  return f.status==='remarcada' ? 'Remarcada' : f.status==='paga' ? 'Em dia' : 'A cobrar';
+}
+function renderFichas(){
+  const b = (document.getElementById('fichas-busca')?.value || '').trim().toLowerCase();
+  const lista = fichas.filter(f => !b || clienteNome(f.clienteId).toLowerCase().includes(b) || f.numero.includes(b));
+  document.getElementById('tabela-fichas').innerHTML = lista.map(f=>`
+    <tr>
+      <td class="mono">${f.numero}</td><td>${clienteNome(f.clienteId)}</td><td>${f.mercadoria}</td>
+      <td class="num mono">${formatBRL(f.valorTotal)}</td><td class="num mono">${formatBRL(f.valorPago)}</td>
+      <td class="num mono">${formatBRL(f.valorTotal - f.valorPago)}</td><td>${situacao(f)}</td>
+      <td><button class="btn ghost" onclick="verHistorico('${f.numero}')">Ver histórico</button> <button class="btn primary" onclick="abrirEdicao('${f.numero}')">Editar</button></td>
+    </tr>`).join('') || '<tr><td colspan="8" style="color:var(--ink-soft);">Nenhuma ficha encontrada.</td></tr>';
+}
+function verHistorico(numero){
+  const f = fichas.find(x=>x.numero===numero);
+  const pg = f.pagamentos || [];
+  const box = document.getElementById('ficha-detalhe');
+  box.style.display = 'block';
+  box.innerHTML = `<h3>Ficha ${f.numero} — ${clienteNome(f.clienteId)}</h3>
+    <p style="font-size:.9rem;color:var(--ink-soft);">${f.mercadoria} · total ${formatBRL(f.valorTotal)} · parcela ${formatBRL(f.parcela)} · cobrador ${cobradorNome(f.cobradorId)}</p>
+    <table><thead><tr><th>Data</th><th>Forma</th><th class="num">Valor</th><th></th></tr></thead><tbody>
+    ${pg.length ? pg.map((x,i)=>`<tr><td>${dataBR(x.data)}${x.inicial ? ' (anterior ao sistema)' : ''}</td><td>${x.forma==='pix'?'Pix':x.forma==='dinheiro'?'Dinheiro':'—'}</td><td class="num mono">${formatBRL(x.valor)}</td><td>${x.inicial ? '' : `<button class="btn ghost" onclick="abrirCorrecao('${f.numero}',${i})">Corrigir</button> <button class="btn ghost" onclick="enviarRecibo('${f.numero}',${i})">Recibo</button>`}</td></tr>`).join('')
+      : '<tr><td colspan="3" style="color:var(--ink-soft);">Nenhum pagamento registrado.</td></tr>'}
+    </tbody></table>
+    <p class="mono">Pago ${formatBRL(f.valorPago)} · restante ${formatBRL(f.valorTotal - f.valorPago)}</p><div id="corrigir-area"></div>${f.cancelada ? '<p class="atraso">Ficha cancelada: ' + h(f.motivoCancelamento || '') + '</p>' : ''}`;
+}
+
+function renderAtrasadas(){
+  const l = listaAtrasadas();
+  document.getElementById('tabela-atrasadas').innerHTML = l.map(f=>`
+    <tr><td class="mono">${f.numero}</td><td>${clienteNome(f.clienteId)}</td><td>${cobradorNome(f.cobradorId)}</td>
+    <td class="num mono">${formatBRL(f.valorTotal - f.valorPago)}</td><td class="num mono atraso">${diasAtraso(f)}</td>
+    <td><button class="btn ghost" onclick="trazerParaHoje('${f.numero}')">Trazer para hoje</button> <button class="btn ghost" onclick="lembrarCliente('${f.numero}')">Lembrar cliente</button></td></tr>`).join('')
+    || '<tr><td colspan="6" style="color:var(--ink-soft);">Nenhuma ficha atrasada.</td></tr>';
+}
+function trazerParaHoje(numero){
+  const f = fichas.find(x=>x.numero===numero);
+  f.status = 'pendente'; f.vencimento = HOJE; delete f.novaData; delete f.remarcacaoAutomatica;
+  renderCobrador(); renderAdmin();
+}
+
+function numPad(n){ return String(n).padStart(6,'0'); }
+function proximoNumero(){ return numPad(Math.max(...fichas.map(f=>parseInt(f.numero,10))) + 1); }
+function renderNumeracao(){
+  const a = parseInt(document.getElementById('num-ini').value), z = parseInt(document.getElementById('num-fim').value);
+  const res = document.getElementById('num-resumo'), box = document.getElementById('num-faltando');
+  if(!a || !z || z < a || z - a > 2000){ res.textContent = 'Informe o primeiro e o último número do bloco.'; box.innerHTML=''; return; }
+  const usados = new Set(fichas.map(f=>parseInt(f.numero,10)));
+  const faltando = [];
+  for(let i=a;i<=z;i++) if(!usados.has(i)) faltando.push(i);
+  res.innerHTML = `Bloco ${numPad(a)} a ${numPad(z)}: <b>${z-a+1-faltando.length}</b> lançadas, <b>${faltando.length}</b> sem lançamento. Próximo número automático: <b class="mono">${proximoNumero()}</b>.`;
+  box.innerHTML = faltando.length ? '<p style="font-size:.85rem;">Números ainda não lançados (confira se estão em branco na caderneta ou se a ficha se perdeu):</p>' + faltando.map(n=>`<span class="chip mono">${numPad(n)}</span>`).join('') : '';
+}
+
+function dadosRelatorio(tipo){
+  if(tipo==='historico') return dadosHistorico();
+  if(tipo==='cobhist') return dadosCobHist();
+  if(tipo==='atrasadas'){
+    return { titulo:'Fichas atrasadas — Rota Certa ('+dataBR(HOJE)+')', cab:['Nº','Cliente','Cobrador','Restante','Dias de atraso'],
+      linhas: listaAtrasadas().map(f=>[f.numero, clienteNome(f.clienteId), cobradorNome(f.cobradorId), formatBRL(f.valorTotal-f.valorPago), diasAtraso(f)]) };
+  }
+  if(tipo==='prestacao'){
+    const id = cobradorInspecionadoId, r = calcularPrestacao(id);
+    return { titulo:'Prestação de contas — '+cobradorNome(id), cab:['Item','Valor'],
+      linhas:[['Total cobrado',formatBRL(r.totalCobrado)],['Comissão (10%)',formatBRL(r.comissao)],['Vales no período','-'+formatBRL(r.valesPeriodo)],['Saldo anterior',formatBRL(r.saldoAnterior)],['Saldo final',formatBRL(r.saldoFinal)]] };
+  }
+  const t = cobradores.map(c=>{ const p = fichas.filter(f=>f.cobradorId===c.id && f.status==='paga'); return [c.nome, p.reduce((s,f)=>s+(f.valorRecebidoHoje ?? f.parcela),0), p.length]; });
+  const g = t.reduce((s,x)=>s+x[1],0);
+  return { titulo:'Relatório do mês — Rota Certa', cab:['Cobrador','Total cobrado','Fichas pagas','% do total'],
+    linhas: t.map(x=>[x[0], formatBRL(x[1]), x[2], (g ? x[1]/g*100 : 0).toFixed(1)+'%']) };
+}
+function exportar(tipo, modo){
+  if(modo==='print'){ window.print(); return; }
+  const d = dadosRelatorio(tipo);
+  if(modo==='wpp'){
+    const txt = d.titulo + '\n' + (d.linhas.map(l=>l.join(' | ')).join('\n') || 'Sem registros.');
+    window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+    return;
+  }
+  const csv = '\ufeff' + [d.cab, ...d.linhas].map(l=>l.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = 'rota-certa-' + tipo + '.csv';
+  a.click();
+}
+// ---------- CPF do cliente ----------
+const soDigitos = x => String(x || '').replace(/\D/g, '');
+function mascaraCPF(x){
+  const d = soDigitos(x).slice(0, 11);
+  return d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1-$2');
+}
+function validarCPF(v){
+  const d = soDigitos(v);
+  if(d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  const dig = n => { let t = 0; for(let i = 0; i < n; i++) t += parseInt(d[i], 10) * (n + 1 - i); const r = (t * 10) % 11; return r === 10 ? 0 : r; };
+  return dig(9) === parseInt(d[9], 10) && dig(10) === parseInt(d[10], 10);
+}
+const nomesParecidos = (a, b) => { const x = normalizaTxt(a), y = normalizaTxt(b); return !x || !y || x === y || x.includes(y) || y.includes(x); };
+function erroLancar(msg){
+  const st = document.getElementById('lancar-status');
+  st.textContent = msg; st.style.color = 'var(--stamp-red)';
+}
+// digitar um CPF já cadastrado puxa o cadastro do cliente
+const _buscarCliente = buscarClienteExistente;
+buscarClienteExistente = function(){
+  _buscarCliente();
+  const origem = window.event && window.event.target && window.event.target.id;
+  const cpf = soDigitos(document.getElementById('lancar-cpf')?.value);
+  if(origem !== 'lancar-cpf' || cpf.length !== 11 || !validarCPF(cpf)) return;
+  const ex = clientes.find(c => c.cpf === cpf);
+  if(!ex) return;
+  const digitado = document.getElementById('lancar-nome').value.trim();
+  if(digitado && !nomesParecidos(digitado, ex.nome)){
+    const aviso = document.getElementById('cliente-encontrado');
+    aviso.style.display = 'block';
+    aviso.innerHTML = `<span style="color:var(--stamp-red);">Este CPF já está cadastrado para <strong>${h(ex.nome)}</strong>. Confira o nome digitado antes de lançar.</span>`;
+    return;
+  }
+  document.getElementById('lancar-nome').value = ex.nome;
+  document.getElementById('lancar-endereco').value = ex.endereco || '';
+  document.getElementById('lancar-referencia').value = ex.referencia || '';
+  document.getElementById('lancar-telefone').value = ex.telefone || '';
+  document.getElementById('lancar-bairro').value = ex.bairro || '';
+  _buscarCliente();
+  clienteSelecionadoId = ex.id;
+  const fs = fichas.filter(f => f.clienteId === ex.id);
+  const info = document.getElementById('cliente-encontrado');
+  info.style.display = 'block';
+  info.innerHTML = `Cliente identificado pelo CPF — esta será uma nova compra para ele:<br><strong>${h(ex.nome)}</strong> (${h(ex.endereco || '')})<br>`
+    + (fs.length ? fs.map(f => `Nº ${f.numero} · ${h(f.mercadoria)} — ${f.cancelada ? 'cancelada' : f.quitada ? 'quitada' : 'em cobrança'}`).join('<br>') : 'sem fichas registradas ainda');
+};
+const _lancarFichaCpf = lancarFicha;
+lancarFicha = function(){
+  const cpf = soDigitos(document.getElementById('lancar-cpf').value);
+  if(cpf){
+    if(!validarCPF(cpf)){ erroLancar('CPF inválido. Confira os números ou deixe o campo vazio.'); return; }
+    const dono = clientes.find(c => c.cpf === cpf);
+    const nomeDigitado = document.getElementById('lancar-nome').value.trim();
+    if(dono && ((clienteSelecionadoId && clienteSelecionadoId !== dono.id) || !nomesParecidos(nomeDigitado, dono.nome))){
+      erroLancar('Este CPF já está cadastrado para ' + dono.nome + '. Confira o nome do cliente.'); return;
+    }
+    if(dono) clienteSelecionadoId = dono.id;
+    const sel = clientes.find(c => c.id === clienteSelecionadoId);
+    if(sel && sel.cpf && sel.cpf !== cpf){
+      erroLancar('Este cliente já tem outro CPF cadastrado. Para corrigir, edite a ficha dele.'); return;
+    }
+  }
+  const n = fichas.length;
+  _lancarFichaCpf();
+  if(fichas.length > n){
+    const f = fichas[fichas.length - 1], cl = clientes.find(c => c.id === f.clienteId);
+    if(cl && cpf && !cl.cpf) cl.cpf = cpf;
+    document.getElementById('lancar-cpf').value = '';
+  }
+};
+
+// ---------- Acesso (empresa, administrador e cobradores) ----------
+const EMPRESA = { nome:'Distribuidora Modelo', chave:'ROTA-2026', admin:{ usuario:'admin', senha:'admin123' } };
+let sessao = null;
+function entrar(){
+  const chave = document.getElementById('login-chave').value.trim();
+  const user = document.getElementById('login-usuario').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  const erro = document.getElementById('login-erro');
+  if(chave.toUpperCase() !== EMPRESA.chave){ erro.textContent = 'Chave de acesso da empresa inválida.'; return; }
+  if(user === EMPRESA.admin.usuario && senha === EMPRESA.admin.senha){ sessao = { papel:'admin' }; }
+  else {
+    const c = cobradores.find(x => x.login === user && x.senha === senha);
+    if(!c){ erro.textContent = 'Usuário ou senha incorretos.'; return; }
+    if(c.ativo === false){ erro.textContent = 'Este usuário está desativado. Procure o administrador.'; return; }
+    sessao = { papel:'cobrador', id:c.id };
+  }
+  erro.textContent = '';
+  document.getElementById('login-senha').value = '';
+  document.getElementById('tela-login').style.display = 'none';
+  document.getElementById('btn-sair').style.display = '';
+  const adm = sessao.papel === 'admin';
+  document.querySelector('.role-switch').style.display = adm ? '' : 'none';
+  const sel = document.getElementById('select-cobrador');
+  sel.disabled = !adm;
+  if(adm){ setRole('admin'); }
+  else { sel.value = sessao.id; setRole('cobrador'); renderCobrador(); }
+}
+function sair(){
+  sessao = null;
+  document.getElementById('tela-login').style.display = 'flex';
+  document.getElementById('btn-sair').style.display = 'none';
+  document.getElementById('view-admin').classList.remove('active');
+}
+function trocarSenha(id){
+  const campo = document.getElementById('ns-'+id), nova = campo.value.trim();
+  const st = document.getElementById('cobrador-status');
+  if(!nova){ st.textContent = 'Digite a nova senha.'; st.style.color = 'var(--stamp-red)'; return; }
+  cobradores.find(c=>c.id===id).senha = nova;
+  campo.value = '';
+  st.textContent = 'Senha de ' + cobradorNome(id) + ' atualizada.'; st.style.color = 'var(--ledger-green)';
+}
+
+// ---------- Editar ficha / enviar para qualquer cobrador ----------
+const esc = x => String(x ?? '').replace(/"/g, '&quot;');
+function abrirEdicao(numero){
+  const f = fichas.find(x=>x.numero===numero), c = clientes.find(x=>x.id===f.clienteId) || {};
+  const box = document.getElementById('ficha-detalhe');
+  box.style.display = 'block';
+  box.innerHTML = `<h3>Editar ficha ${f.numero} — ${clienteNome(f.clienteId)}</h3>
+    <div class="vale-form">
+      <input type="text" id="ed-endereco" value="${esc(c.endereco)}" placeholder="Endereço" style="flex:1;min-width:220px;">
+      <input type="text" id="ed-ref" value="${esc(c.referencia)}" placeholder="Referência" style="flex:1;min-width:200px;">
+      <input type="text" id="ed-tel" value="${esc(c.telefone)}" placeholder="Telefone / WhatsApp" style="min-width:180px;">
+      <input type="text" id="ed-cpf" value="${esc(mascaraCPF(c.cpf))}" placeholder="CPF" maxlength="14" inputmode="numeric" autocomplete="off" oninput="this.value=mascaraCPF(this.value)" style="min-width:150px;">
+      <span id="ed-cpf-erro" style="width:100%;font-size:.85rem;color:var(--stamp-red);"></span>
+    </div>
+    <div class="vale-form">
+      <input type="text" id="ed-merc" value="${esc(f.mercadoria)}" placeholder="Mercadoria">
+      <input type="text" id="ed-merc-nova" placeholder="Adicionar nova mercadoria">
+      <input type="number" id="ed-valor-add" placeholder="Valor a somar ao total (R$)" min="0" step="10">
+      <input type="number" id="ed-parcela" value="${f.parcela}" min="1" placeholder="Valor da parcela">
+    </div>
+    <p style="font-size:.85rem;color:var(--ink-soft);">Total atual ${formatBRL(f.valorTotal)} · pago ${formatBRL(f.valorPago)}. O endereço vale para o cliente (todas as fichas dele).</p>
+    <div class="vale-form">
+      <span style="font-size:.85rem;">Enviar para o cobrador:</span>
+      <select id="ed-cobrador">${cobradores.map(k=>`<option value="${k.id}" ${k.id===f.cobradorId?'selected':''}>${k.nome}</option>`).join('')}</select>
+      <input type="date" id="ed-data" min="${HOJE}">
+    </div>
+    <p style="font-size:.8rem;color:var(--ink-soft);">Pode ser qualquer cobrador, mesmo de outra rota (ex.: cliente pagou adiantado). Com a data, a ficha volta a ser cobrada nesse dia; sem data, só muda de cobrador.</p>
+    <button class="btn primary" onclick="salvarEdicao('${f.numero}')">Salvar alterações</button>
+    <button class="btn ghost" onclick="document.getElementById('ficha-detalhe').style.display='none'">Fechar</button>${blocoCancelamento(f)}`;
+}
+function salvarEdicao(numero){
+  const f = fichas.find(x=>x.numero===numero), c = clientes.find(x=>x.id===f.clienteId);
+  const v = id => document.getElementById(id).value.trim();
+  if(c){ if(v('ed-endereco')) c.endereco = v('ed-endereco'); c.referencia = v('ed-ref'); c.telefone = v('ed-tel'); }
+  let merc = v('ed-merc') || f.mercadoria;
+  if(v('ed-merc-nova')) merc += ' + ' + v('ed-merc-nova');
+  f.mercadoria = merc;
+  f.valorTotal += parseFloat(v('ed-valor-add')) || 0;
+  if(parseFloat(v('ed-parcela')) > 0) f.parcela = parseFloat(v('ed-parcela'));
+  const data = v('ed-data'), novoCob = v('ed-cobrador');
+  const reabriu = f.quitada && f.valorTotal > f.valorPago;
+  f.cobradorId = novoCob;
+  let msg = 'Ficha ' + numero + ' atualizada';
+  if(reabriu){
+    f.quitada = false; f.status = 'pendente'; f.vencimento = data || HOJE; delete f.novaData; delete f.proximaData;
+    msg += ' e reaberta para ' + cobradorNome(novoCob) + ' em ' + dataBR(f.vencimento);
+  } else if(data && !f.quitada){
+    if(f.status==='paga'){ f.proximaData = data; }
+    else { f.status = 'pendente'; f.vencimento = data; delete f.novaData; delete f.remarcacaoAutomatica; }
+    msg += '. Será cobrada por ' + cobradorNome(novoCob) + ' em ' + dataBR(data);
+  } else { msg += '. Cobrador: ' + cobradorNome(novoCob); }
+  renderAdmin(); renderCobrador();
+  const box = document.getElementById('ficha-detalhe');
+  box.style.display = 'block';
+  box.innerHTML = '<p style="color:var(--ledger-green);font-weight:600;">' + msg + '.</p>';
+}
+function salvarProximaData(numero){
+  const d = document.getElementById('prox-'+numero).value;
+  if(!d) return;
+  fichas.find(x=>x.numero===numero).proximaData = d;
+  renderCobrador();
+}
+
+// ---------- Cobrança por período ----------
+function isoLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function histDados(){
+  const tipo = document.getElementById('hist-periodo').value;
+  const d = document.getElementById('hist-data').value || HOJE;
+  const cobId = document.getElementById('hist-cobrador').value;
+  let ini = d, fim = d, rotulo = 'dia ' + dataBR(d);
+  if(tipo==='mes'){ ini = d.slice(0,8)+'01'; fim = d.slice(0,8)+'31'; rotulo = 'mês ' + d.slice(5,7) + '/' + d.slice(0,4); }
+  if(tipo==='semana'){
+    const dt = new Date(d+'T00:00:00'), seg = new Date(dt); seg.setDate(dt.getDate() - (dt.getDay()+6)%7);
+    const dom = new Date(seg); dom.setDate(seg.getDate()+6);
+    ini = isoLocal(seg); fim = isoLocal(dom); rotulo = 'semana de ' + dataBR(ini) + ' a ' + dataBR(fim);
+  }
+  const rows = [];
+  fichas.forEach(f=>{
+    (f.pagamentos||[]).forEach(p=>{
+      const dono = p.cobradorId ?? f.cobradorId;
+      if(cobId && dono!==cobId) return;
+      if(!p.inicial && p.data>=ini && p.data<=fim) rows.push({ f, ...p, dono });
+    });
+  });
+  rows.sort((a,b)=> a.data<b.data ? -1 : a.data>b.data ? 1 : 0);
+  return { rows, rotulo, cobId };
+}
+const formaTxt = x => x==='pix' ? 'Pix' : x==='dinheiro' ? 'Dinheiro' : '—';
+function renderHistorico(){
+  const sel = document.getElementById('hist-cobrador');
+  if(sel.options.length !== cobradores.length+1){
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Todos os cobradores</option>' + cobradores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+    sel.value = atual;
+  }
+  const { rows, rotulo, cobId } = histDados();
+  document.getElementById('hist-rotulo').textContent = 'Período: ' + rotulo;
+  const lista = cobradores.filter(c => !cobId || c.id===cobId);
+  document.getElementById('tabela-hist-resumo').innerHTML = lista.map(c=>{
+    const r = rows.filter(x=>x.dono===c.id), soma = a => a.reduce((t,x)=>t+x.valor,0);
+    return `<tr><td>${linkCobrador(c.id, c.nome)}</td><td class="num mono">${r.length}</td><td class="num mono">${formatBRL(soma(r.filter(x=>x.forma==='pix')))}</td><td class="num mono">${formatBRL(soma(r.filter(x=>x.forma==='dinheiro')))}</td><td class="num mono">${formatBRL(soma(r))}</td></tr>`;
+  }).join('');
+  document.getElementById('tabela-hist-detalhe').innerHTML = rows.map(x=>`
+    <tr><td>${dataBR(x.data)}</td><td>${clienteNome(x.f.clienteId)}</td><td class="mono">${x.f.numero}</td><td>${cobradorNome(x.dono)}</td><td>${formaTxt(x.forma)}</td><td class="num mono">${formatBRL(x.valor)}</td></tr>`).join('')
+    || '<tr><td colspan="6" style="color:var(--ink-soft);">Nenhum pagamento nesse período.</td></tr>';
+}
+function dadosHistorico(){
+  const { rows, rotulo } = histDados();
+  return { titulo:'Histórico de cobrança — ' + rotulo, cab:['Data','Cliente','Ficha','Cobrador','Forma','Valor'],
+    linhas: rows.map(x=>[dataBR(x.data), clienteNome(x.f.clienteId), x.f.numero, cobradorNome(x.dono), formaTxt(x.forma), formatBRL(x.valor)]) };
+}
+
+// ---------- Histórico de um cobrador (clicando no nome) ----------
+let cobHistId = null;
+function mostrarAbaAdmin(tab){
+  document.querySelectorAll('.admin-tabs button').forEach(b => b.classList.toggle('active', b.getAttribute('onclick') === "setAdminTab('" + tab + "')"));
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('admin-' + tab).classList.add('active');
+}
+function linkCobrador(id, nome){
+  return `<a href="#" class="link-cob" title="Ver histórico de cobrança" onclick="abrirHistoricoCobrador('${id}');return false;">${h(nome)}</a>`;
+}
+const somaV = a => a.reduce((t, x) => t + x.valor, 0);
+function pagamentosDoCobrador(id){
+  const rows = [];
+  fichas.forEach(f => (f.pagamentos || []).forEach(p => {
+    if(!p.inicial && (p.cobradorId ?? f.cobradorId) === id) rows.push({ f, ...p });
+  }));
+  return rows;
+}
+function resumoLinhas(rows){
+  return { qtd: rows.length, pix: somaV(rows.filter(x => x.forma === 'pix')), din: somaV(rows.filter(x => x.forma === 'dinheiro')), total: somaV(rows) };
+}
+function intervaloSemana(d){
+  const dt = new Date(d + 'T00:00:00'), seg = new Date(dt);
+  seg.setDate(dt.getDate() - (dt.getDay() + 6) % 7);
+  const dom = new Date(seg); dom.setDate(seg.getDate() + 6);
+  return [isoLocal(seg), isoLocal(dom)];
+}
+function abrirHistoricoCobrador(id){
+  cobHistId = id;
+  document.getElementById('cobhist-data').value = HOJE;
+  mostrarAbaAdmin('cobhist');
+  renderCobHist();
+  window.scrollTo(0, 0);
+}
+function cobHistIrPara(d){ document.getElementById('cobhist-data').value = d; renderCobHist(); window.scrollTo(0, 0); }
+function cobHistDeslocar(n){
+  const inp = document.getElementById('cobhist-data');
+  const dt = new Date((inp.value || HOJE) + 'T00:00:00');
+  dt.setDate(dt.getDate() + n);
+  cobHistIrPara(isoLocal(dt));
+}
+function cobHistVerPeriodo(){
+  renderHistorico();
+  document.getElementById('hist-cobrador').value = cobHistId;
+  document.getElementById('hist-data').value = document.getElementById('cobhist-data').value || HOJE;
+  mostrarAbaAdmin('historico');
+  renderHistorico();
+}
+function renderCobHist(){
+  const c = cobradores.find(x => x.id === cobHistId);
+  if(!c) return;
+  const inp = document.getElementById('cobhist-data');
+  if(!inp.value) inp.value = HOJE;
+  const d = inp.value;
+  document.getElementById('cobhist-titulo').textContent = 'Histórico de ' + c.nome;
+  const todos = pagamentosDoCobrador(cobHistId);
+  const dia = todos.filter(x => x.data === d).sort((a, b) => clienteNome(a.f.clienteId).localeCompare(clienteNome(b.f.clienteId)));
+  const r = resumoLinhas(dia);
+  document.getElementById('cobhist-resumo').innerHTML =
+    `<tr><td>${dataBR(d)}</td><td class="num mono">${r.qtd}</td><td class="num mono">${formatBRL(r.pix)}</td><td class="num mono">${formatBRL(r.din)}</td><td class="num mono"><b>${formatBRL(r.total)}</b></td></tr>`;
+
+  let conf = '';
+  if(d === HOJE){
+    const e = entregasRegistradas[cobHistId];
+    conf = enviosDia[cobHistId] !== true ? 'Hoje: o cobrador ainda não enviou o resultado do dia.'
+      : confirmacoesAdmin[cobHistId] ? 'Hoje: dia conferido. Espécie entregue ' + formatBRL(e?.valorEntregue || 0) + (e?.diferenca > 0 ? ', diferença de ' + formatBRL(e.diferenca) + ' lançada como vale.' : '.')
+      : 'Hoje: resultado enviado, aguardando a sua conferência.';
+  }
+  document.getElementById('cobhist-conf').textContent = conf;
+
+  const [si, sf] = intervaloSemana(d);
+  const sem = resumoLinhas(todos.filter(x => x.data >= si && x.data <= sf));
+  const mes = resumoLinhas(todos.filter(x => x.data.slice(0, 7) === d.slice(0, 7)));
+  document.getElementById('cobhist-periodos').textContent =
+    `Semana de ${dataBR(si)} a ${dataBR(sf)}: ${formatBRL(sem.total)} em ${sem.qtd} pagamento(s). Mês ${d.slice(5, 7)}/${d.slice(0, 4)}: ${formatBRL(mes.total)} em ${mes.qtd} pagamento(s).`;
+
+  document.getElementById('cobhist-detalhe').innerHTML = dia.map(x =>
+    `<tr><td>${h(clienteNome(x.f.clienteId))}</td><td class="mono">${x.f.numero}</td><td>${formaTxt(x.forma)}</td><td class="num mono">${formatBRL(x.valor)}</td></tr>`).join('')
+    || '<tr><td colspan="4" style="color:var(--ink-soft);">Nenhum pagamento recebido neste dia.</td></tr>';
+
+  const mapa = {};
+  todos.forEach(x => { (mapa[x.data] ||= []).push(x); });
+  const datas = Object.keys(mapa).sort().reverse().slice(0, 60);
+  document.getElementById('cobhist-dias').innerHTML = datas.map(dt => {
+    const q = resumoLinhas(mapa[dt]);
+    return `<tr${dt === d ? ' style="background:var(--paper-light);font-weight:600;"' : ''}><td>${dataBR(dt)}</td><td class="num mono">${q.qtd}</td><td class="num mono">${formatBRL(q.pix)}</td><td class="num mono">${formatBRL(q.din)}</td><td class="num mono">${formatBRL(q.total)}</td><td><button class="btn ghost" onclick="cobHistIrPara('${dt}')">Ver clientes</button></td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:var(--ink-soft);">Este cobrador ainda não tem pagamentos registrados.</td></tr>';
+}
+function dadosCobHist(){
+  const d = document.getElementById('cobhist-data').value || HOJE;
+  const dia = pagamentosDoCobrador(cobHistId).filter(x => x.data === d);
+  const linhas = dia.map(x => [clienteNome(x.f.clienteId), x.f.numero, formaTxt(x.forma), formatBRL(x.valor)]);
+  linhas.push(['TOTAL', '', '', formatBRL(somaV(dia))]);
+  return { titulo: 'Cobrança de ' + cobradorNome(cobHistId) + ' em ' + dataBR(d), cab: ['Cliente', 'Ficha', 'Forma', 'Valor'], linhas };
+}
+
+// botões de exportação também na prestação de contas aberta
+const _renderPrestacaoOriginal = renderPrestacaoContas;
+renderPrestacaoContas = function(){
+  _renderPrestacaoOriginal();
+  const ct = document.getElementById('prestacao-contas-container');
+  if(ct && prestacaoAberta && prestacaoAberta === cobradorInspecionadoId){
+    ct.insertAdjacentHTML('beforeend', `<div class="acoes"><button class="btn ghost" onclick="exportar('prestacao','print')">Imprimir</button><button class="btn ghost" onclick="exportar('prestacao','csv')">Baixar planilha (CSV)</button><button class="btn primary" onclick="exportar('prestacao','wpp')">Enviar por WhatsApp</button></div>`);
+  }
+};
+fichas.forEach(f=>{
+  if(f.pagamentos) return;
+  f.pagamentos = (f.status==='paga' && f.parcela>0) ? [{ data:f.vencimento, valor:f.parcela, forma:f.formaPagamento||'—', cobradorId:f.cobradorId }]
+    : f.valorPago>0 ? [{ data:f.vencimento, valor:f.valorPago, forma:'—', inicial:true }] : [];
+});
+
+// ============================================================
+// Melhorias: registro de alterações, correção de baixa, transferência,
+// cancelamento, importação, backup, recibo, mapa e modo sem internet
+// ============================================================
+let auditoria = [];
+let modoOffline = false, pendentesEnvio = 0, ultimaSync = '';
+let importacaoPendente = null, correcaoAtual = null, extraConfirmado = false;
+EMPRESA.cobradoresIncluidos = 2;
+
+const cobradoresAtivos = () => cobradores.filter(c => c.ativo !== false);
+function h(x){ return String(x ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const numBR = n => String(Math.round(n*100)/100).replace('.', ',');
+function quemFez(){ return !sessao ? 'Sistema' : (sessao.papel==='admin' ? 'Administrador' : cobradorNome(sessao.id)); }
+function dataHoraBR(iso){ return new Date(iso).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+function registrar(acao, detalhe){
+  auditoria.push({ quando: new Date().toISOString(), quem: quemFez(), acao, detalhe: detalhe || '' });
+  if(document.getElementById('tabela-registro')) renderRegistro();
+}
+function baixarArquivo(nome, conteudo, tipo){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
+  a.download = nome; a.click();
+}
+const csvTexto = (cab, linhas) => '﻿' + [cab, ...linhas].map(l => l.map(x => '"' + String(x ?? '').replace(/"/g,'""') + '"').join(';')).join('\n');
+
+// ---------- Registro de alterações ----------
+function renderRegistro(){
+  const b = (document.getElementById('registro-busca')?.value || '').trim().toLowerCase();
+  const lista = auditoria.slice().reverse()
+    .filter(x => !b || (x.quem + ' ' + x.acao + ' ' + x.detalhe).toLowerCase().includes(b)).slice(0, 300);
+  document.getElementById('tabela-registro').innerHTML = lista.map(x =>
+    `<tr><td>${dataHoraBR(x.quando)}</td><td>${h(x.quem)}</td><td>${h(x.acao)}</td><td>${x.detalhe}</td></tr>`).join('')
+    || '<tr><td colspan="4" style="color:var(--ink-soft);">Nenhuma alteração registrada ainda.</td></tr>';
+}
+function exportarRegistro(){
+  baixarArquivo('registro-de-alteracoes.csv',
+    csvTexto(['quando','quem','acao','detalhe'], auditoria.map(x => [dataHoraBR(x.quando), x.quem, x.acao, x.detalhe.replace(/<[^>]+>/g,'')])),
+    'text/csv;charset=utf-8');
+}
+
+// ---------- Corrigir ou excluir um pagamento ----------
+function recalcularFicha(f){
+  if(f.cancelada) return;
+  f.quitada = f.valorPago >= f.valorTotal;
+  if(f.quitada) delete f.proximaData;
+}
+function abrirCorrecao(numero, i){
+  const f = fichas.find(x => x.numero===numero), p = f.pagamentos[i];
+  correcaoAtual = { numero, i };
+  const aviso = (confirmacoesAdmin[f.cobradorId] && p.data===HOJE)
+    ? '<p style="font-size:.85rem;color:var(--stamp-red);">O dia deste cobrador já foi conferido. Corrigir muda o valor esperado do dia e não ajusta o vale automático.</p>' : '';
+  document.getElementById('corrigir-area').innerHTML = `<div class="card-block" style="margin-top:12px;">
+    <h4>Corrigir pagamento de ${dataBR(p.data)}</h4>${aviso}
+    <div class="vale-form">
+      <input type="number" id="cor-valor" value="${p.valor}" min="0.01" step="0.01">
+      <select id="cor-forma"><option value="dinheiro" ${p.forma==='dinheiro'?'selected':''}>Dinheiro</option><option value="pix" ${p.forma==='pix'?'selected':''}>Pix</option></select>
+      <input type="text" id="cor-motivo" placeholder="Motivo (obrigatório)" style="flex:1;min-width:220px;">
+    </div>
+    <p id="cor-erro" style="font-size:.85rem;color:var(--stamp-red);min-height:1.2em;"></p>
+    <button class="btn primary" onclick="salvarCorrecao()">Salvar correção</button>
+    <button class="btn ghost" onclick="excluirPagamento()">Excluir este pagamento</button>
+    <button class="btn ghost" onclick="document.getElementById('corrigir-area').innerHTML=''">Fechar</button>
+  </div>`;
+}
+function salvarCorrecao(){
+  const { numero, i } = correcaoAtual || {};
+  const f = fichas.find(x => x.numero===numero), p = f?.pagamentos?.[i];
+  if(!p) return;
+  const erro = document.getElementById('cor-erro');
+  const valor = parseFloat(document.getElementById('cor-valor').value);
+  const forma = document.getElementById('cor-forma').value;
+  const motivo = document.getElementById('cor-motivo').value.trim();
+  if(!(valor > 0)){ erro.textContent = 'Informe um valor maior que zero.'; return; }
+  if(!motivo){ erro.textContent = 'Informe o motivo da correção.'; return; }
+  const novoPago = f.valorPago - p.valor + valor;
+  if(novoPago > f.valorTotal + 0.001){ erro.textContent = 'O valor pago passaria do total da ficha (' + formatBRL(f.valorTotal) + ').'; return; }
+  const antes = formatBRL(p.valor) + ' ' + formaTxt(p.forma);
+  f.valorPago = novoPago; p.valor = valor; p.forma = forma; p.corrigido = true;
+  if(i === f.pagamentos.length - 1){ f.valorRecebidoHoje = valor; f.formaPagamento = forma; }
+  recalcularFicha(f);
+  registrar('Pagamento corrigido', `Ficha ${numero} · ${h(clienteNome(f.clienteId))} · de ${antes} para ${formatBRL(valor)} ${formaTxt(forma)} · motivo: ${h(motivo)}`);
+  renderAdmin(); renderCobrador(); verHistorico(numero);
+}
+function excluirPagamento(){
+  const { numero, i } = correcaoAtual || {};
+  const f = fichas.find(x => x.numero===numero), p = f?.pagamentos?.[i];
+  if(!p) return;
+  const erro = document.getElementById('cor-erro');
+  const motivo = document.getElementById('cor-motivo').value.trim();
+  if(!motivo){ erro.textContent = 'Informe o motivo da exclusão.'; return; }
+  const eraUltimo = i === f.pagamentos.length - 1;
+  f.valorPago = Math.max(0, f.valorPago - p.valor);
+  f.pagamentos.splice(i, 1);
+  if(eraUltimo && f.status === 'paga'){
+    f.status = 'pendente'; delete f.proximaData; delete f.valorRecebidoHoje; delete f.formaPagamento;
+    const novo = f.pagamentos.filter(x => !x.inicial).slice(-1)[0];
+    if(novo){ f.valorRecebidoHoje = novo.valor; f.formaPagamento = novo.forma; }
+  }
+  recalcularFicha(f);
+  registrar('Pagamento excluído', `Ficha ${numero} · ${h(clienteNome(f.clienteId))} · ${formatBRL(p.valor)} ${formaTxt(p.forma)} de ${dataBR(p.data)} · motivo: ${h(motivo)}`);
+  renderAdmin(); renderCobrador(); verHistorico(numero);
+}
+
+// ---------- Cancelar / reabrir ficha ----------
+function blocoCancelamento(f){
+  if(f.cancelada){
+    return `<div class="card-block" style="margin-top:12px;"><b>Ficha cancelada</b> — ${h(f.motivoCancelamento || '')}<br>
+      <button class="btn primary" onclick="reabrirFicha('${f.numero}')">Reabrir ficha</button></div>`;
+  }
+  return `<div class="card-block" style="margin-top:12px;"><b>Cancelar ficha (ex.: mercadoria devolvida)</b>
+    <div class="vale-form"><input type="text" id="ed-cancel-motivo" placeholder="Motivo" style="flex:1;min-width:220px;">
+    <button class="btn ghost" onclick="cancelarFicha('${f.numero}')">Cancelar ficha</button></div>
+    <p id="ed-cancel-erro" style="font-size:.85rem;color:var(--stamp-red);"></p></div>`;
+}
+function cancelarFicha(numero){
+  const f = fichas.find(x => x.numero===numero);
+  const motivo = document.getElementById('ed-cancel-motivo').value.trim();
+  const erro = document.getElementById('ed-cancel-erro');
+  if(!motivo){ erro.textContent = 'Informe o motivo (ex.: mercadoria devolvida).'; return; }
+  if((f.pagamentos || []).some(p => p.data===HOJE && !p.inicial)){
+    erro.textContent = 'Esta ficha teve pagamento hoje. Corrija ou exclua o pagamento antes de cancelar.'; return;
+  }
+  f.cancelada = true; f.motivoCancelamento = motivo; f.quitada = true; delete f.proximaData; delete f.novaData;
+  registrar('Ficha cancelada', `Ficha ${numero} · ${h(clienteNome(f.clienteId))} · pago ${formatBRL(f.valorPago)} de ${formatBRL(f.valorTotal)} · motivo: ${h(motivo)}`);
+  renderAdmin(); renderCobrador();
+  document.getElementById('ficha-detalhe').innerHTML = '<p style="color:var(--ledger-green);font-weight:600;">Ficha ' + numero + ' cancelada e enviada para as fichas encerradas.</p>';
+}
+function reabrirFicha(numero){
+  const f = fichas.find(x => x.numero===numero);
+  f.cancelada = false; delete f.motivoCancelamento;
+  f.quitada = f.valorPago >= f.valorTotal;
+  if(!f.quitada){ f.status = 'pendente'; f.vencimento = HOJE; }
+  registrar('Ficha reaberta', `Ficha ${numero} · ${h(clienteNome(f.clienteId))}`);
+  renderAdmin(); renderCobrador();
+  document.getElementById('ficha-detalhe').innerHTML = '<p style="color:var(--ledger-green);font-weight:600;">Ficha ' + numero + ' reaberta.</p>';
+}
+
+// ---------- Transferir fichas e desativar cobrador ----------
+function renderTransferencia(){
+  const opts = cobradoresAtivos().map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  const de = document.getElementById('tr-de'), para = document.getElementById('tr-para');
+  if(!de || !para) return;
+  const vd = de.value, vp = para.value;
+  de.innerHTML = opts; para.innerHTML = opts;
+  if(vd) de.value = vd;
+  if(vp) para.value = vp; else if(para.options.length > 1) para.selectedIndex = 1;
+  atualizarContagemTransferencia();
+}
+function fichaTransferivel(f, de){ return f.cobradorId===de && !f.quitada && !(f.pagamentos || []).some(p => p.data===HOJE && !p.inicial); }
+function atualizarContagemTransferencia(){
+  const de = document.getElementById('tr-de')?.value;
+  const el = document.getElementById('tr-contagem');
+  if(!el || !de) return;
+  const n = fichas.filter(f => fichaTransferivel(f, de)).length;
+  const hoje = fichas.filter(f => f.cobradorId===de && !f.quitada).length - n;
+  el.textContent = n + ' ficha(s) ativa(s) podem ser transferidas' + (hoje ? ' (' + hoje + ' com pagamento de hoje ficam para amanhã)' : '') + '.';
+}
+function transferirFichas(){
+  const de = document.getElementById('tr-de').value, para = document.getElementById('tr-para').value;
+  const st = document.getElementById('tr-status');
+  if(!de || !para || de===para){ st.textContent = 'Escolha dois cobradores diferentes.'; st.style.color = 'var(--stamp-red)'; return; }
+  const mover = fichas.filter(f => fichaTransferivel(f, de));
+  if(!mover.length){ st.textContent = 'Não há fichas ativas para transferir.'; st.style.color = 'var(--stamp-red)'; return; }
+  mover.forEach(f => f.cobradorId = para);
+  registrar('Fichas transferidas', `${mover.length} ficha(s) de ${h(cobradorNome(de))} para ${h(cobradorNome(para))}`);
+  renderAdmin(); renderCobrador();
+  const st2 = document.getElementById('tr-status');
+  st2.textContent = mover.length + ' ficha(s) transferida(s) de ' + cobradorNome(de) + ' para ' + cobradorNome(para) + '.';
+  st2.style.color = 'var(--ledger-green)';
+}
+function alternarAtivoCobrador(id){
+  const c = cobradores.find(x => x.id===id), st = document.getElementById('cobrador-status');
+  if(c.ativo !== false){
+    const n = fichas.filter(f => f.cobradorId===id && !f.quitada).length;
+    if(n > 0){
+      st.textContent = c.nome + ' ainda tem ' + n + ' ficha(s) ativa(s). Transfira as fichas para outro cobrador antes de desativar.';
+      st.style.color = 'var(--stamp-red)'; return;
+    }
+    c.ativo = false; registrar('Cobrador desativado', h(c.nome));
+    st.textContent = c.nome + ' foi desativado e não consegue mais entrar no app.';
+  } else {
+    c.ativo = true; registrar('Cobrador reativado', h(c.nome));
+    st.textContent = c.nome + ' foi reativado.';
+  }
+  st.style.color = 'var(--ledger-green)';
+  renderAdmin(); populateCobradorSelect();
+}
+
+// ---------- Recibo, lembrete e mapa ----------
+function telLimpo(t){ const d = String(t || '').replace(/\D/g,''); return d ? (d.length <= 11 ? '55' + d : d) : ''; }
+function abrirWpp(tel, texto){ window.open('https://wa.me/' + telLimpo(tel) + '?text=' + encodeURIComponent(texto), '_blank'); }
+function mapaLink(clienteId){
+  const c = clientes.find(x => x.id===clienteId) || {};
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([c.endereco, c.bairro].filter(Boolean).join(', '));
+}
+function enviarRecibo(numero, i){
+  const f = fichas.find(x => x.numero===numero);
+  const lista = (f.pagamentos || []).filter(p => !p.inicial);
+  const p = (i === undefined) ? lista[lista.length - 1] : f.pagamentos[i];
+  if(!p) return;
+  const rest = Math.max(0, f.valorTotal - f.valorPago);
+  const texto = `*Recibo de pagamento — ${EMPRESA.nome}*\nCliente: ${clienteNome(f.clienteId)}\nFicha nº ${f.numero} (${f.mercadoria})\nValor recebido: ${formatBRL(p.valor)} (${formaTxt(p.forma)})\nData: ${dataBR(p.data)}\nRestante da compra: ${formatBRL(rest)}`
+    + (f.quitada ? '\nCompra quitada. Obrigado!' : (f.proximaData ? `\nPróxima cobrança: ${dataBR(f.proximaData)}` : ''));
+  abrirWpp((clientes.find(x => x.id===f.clienteId) || {}).telefone, texto);
+  registrar('Recibo enviado', `Ficha ${numero} · ${h(clienteNome(f.clienteId))} · ${formatBRL(p.valor)}`);
+}
+function lembrarCliente(numero){
+  const f = fichas.find(x => x.numero===numero);
+  const texto = `Olá, ${clienteNome(f.clienteId)}! Aqui é da ${EMPRESA.nome}. Passando para lembrar da parcela de ${formatBRL(f.parcela)} da ficha nº ${f.numero} (${f.mercadoria}), que venceu em ${dataBR(dataProxima(f))}. Restante da compra: ${formatBRL(f.valorTotal - f.valorPago)}. Podemos combinar o melhor dia para passar aí?`;
+  abrirWpp((clientes.find(x => x.id===f.clienteId) || {}).telefone, texto);
+  registrar('Lembrete enviado', `Ficha ${numero} · ${h(clienteNome(f.clienteId))}`);
+}
+
+// ---------- Importação de fichas (CSV) ----------
+const ALIAS = { numero:'numero', n:'numero', ficha:'numero', num:'numero', cliente:'cliente', nome:'cliente', bairro:'bairro',
+  endereco:'endereco', referencia:'referencia', telefone:'telefone', whatsapp:'telefone', mercadoria:'mercadoria',
+  valor_total:'valor_total', total:'valor_total', valor_pago:'valor_pago', pago:'valor_pago', parcela:'parcela',
+  valor_parcela:'parcela', cpf:'cpf', documento:'cpf', proxima_cobranca:'data', vencimento:'data', proxima_data:'data', data:'data' };
+const normalizaCab = x => String(x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+const normalizaTxt = x => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+function acharBairro(nome){ return todosBairros().find(b => normalizaTxt(b) === normalizaTxt(nome)) || null; }
+function parseNum(x){
+  let t = String(x ?? '').replace(/[R$\s]/g,'');
+  if(!t) return NaN;
+  if(t.includes(',')) t = t.replace(/\./g,'').replace(',','.');
+  return parseFloat(t);
+}
+function parseData(x){
+  const t = String(x || '').trim();
+  if(!t) return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(m) return (m[3].length === 2 ? '20' + m[3] : m[3]) + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
+  return null;
+}
+function parseCSV(texto){
+  texto = texto.replace(/^﻿/, '');
+  const primeira = texto.split(/\r?\n/)[0] || '';
+  const sep = (primeira.match(/;/g) || []).length >= (primeira.match(/,/g) || []).length ? ';' : ',';
+  const linhas = []; let campo = '', linha = [], aspas = false;
+  for(let i = 0; i < texto.length; i++){
+    const ch = texto[i];
+    if(aspas){
+      if(ch === '"'){ if(texto[i+1] === '"'){ campo += '"'; i++; } else aspas = false; }
+      else campo += ch;
+    } else if(ch === '"') aspas = true;
+    else if(ch === sep){ linha.push(campo); campo = ''; }
+    else if(ch === '\n' || ch === '\r'){
+      if(ch === '\r' && texto[i+1] === '\n') i++;
+      linha.push(campo); campo = '';
+      if(linha.some(c => c.trim() !== '')) linhas.push(linha);
+      linha = [];
+    } else campo += ch;
+  }
+  linha.push(campo);
+  if(linha.some(c => c.trim() !== '')) linhas.push(linha);
+  return linhas;
+}
+function analisarImportacao(texto){
+  const linhas = parseCSV(texto);
+  if(linhas.length < 2) return { validas:[], erros:[{ linha:1, msg:'O arquivo precisa ter o cabeçalho e ao menos uma ficha.' }] };
+  const cab = linhas[0].map(c => ALIAS[normalizaCab(c)] || null);
+  const falta = ['numero','cliente','bairro','valor_total','parcela'].filter(k => !cab.includes(k));
+  if(falta.length) return { validas:[], erros:[{ linha:1, msg:'Faltam colunas obrigatórias: ' + falta.join(', ') }] };
+  const usados = new Set(fichas.map(f => parseInt(f.numero, 10)));
+  const validas = [], erros = [];
+  linhas.slice(1).forEach((l, idx) => {
+    const lin = idx + 2, r = {};
+    cab.forEach((k, j) => { if(k) r[k] = (l[j] || '').trim(); });
+    const numero = parseInt(r.numero, 10), total = parseNum(r.valor_total), parcela = parseNum(r.parcela);
+    const pago = r.valor_pago ? parseNum(r.valor_pago) : 0, data = parseData(r.data);
+    const bairro = acharBairro(r.bairro);
+    let msg = null;
+    if(!(numero > 0)) msg = 'número da ficha inválido';
+    else if(usados.has(numero)) msg = 'a ficha ' + numPad(numero) + ' já existe (ou está repetida no arquivo)';
+    else if(!r.cliente) msg = 'falta o nome do cliente';
+    else if(!r.bairro) msg = 'falta o bairro';
+    else if(!bairro || !cobradorPorBairro(bairro)) msg = 'o bairro "' + r.bairro + '" não está na rota de nenhum cobrador ativo';
+    else if(!(total > 0)) msg = 'valor total inválido';
+    else if(!(parcela > 0)) msg = 'valor da parcela inválido';
+    else if(isNaN(pago) || pago < 0 || pago > total) msg = 'valor pago inválido (ou maior que o total)';
+    else if(data === null) msg = 'data inválida (use dd/mm/aaaa)';
+    else if(r.cpf && !validarCPF(r.cpf)) msg = 'CPF inválido';
+    if(msg){ erros.push({ linha: lin, msg }); return; }
+    usados.add(numero);
+    validas.push({ linha: lin, numero, cliente:r.cliente, bairro, endereco:r.endereco || '', referencia:r.referencia || '', telefone:r.telefone || '', cpf: soDigitos(r.cpf),
+      mercadoria:r.mercadoria || 'Mercadoria', total, pago, parcela, data: data || HOJE });
+  });
+  return { validas, erros };
+}
+function lerImportacao(){
+  const arq = document.getElementById('import-arquivo').files[0];
+  if(!arq) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    let t;
+    try { t = new TextDecoder('utf-8', { fatal:true }).decode(rd.result); }
+    catch(e){ t = new TextDecoder('windows-1252').decode(rd.result); }
+    importacaoPendente = analisarImportacao(t);
+    mostrarResumoImportacao();
+  };
+  rd.readAsArrayBuffer(arq);
+}
+function mostrarResumoImportacao(){
+  const box = document.getElementById('import-resumo'), r = importacaoPendente;
+  if(!r){ box.innerHTML = ''; return; }
+  const porCob = {};
+  r.validas.forEach(v => { const n = cobradorNome(cobradorPorBairro(v.bairro)); porCob[n] = (porCob[n] || 0) + 1; });
+  const dist = Object.entries(porCob).map(([n, q]) => h(n) + ': ' + q).join(', ');
+  box.innerHTML = `<p><b>${r.validas.length}</b> ficha(s) prontas para importar${dist ? ' (' + dist + ')' : ''}. <b class="${r.erros.length ? 'atraso' : ''}">${r.erros.length}</b> linha(s) com problema${r.erros.length ? ', que não serão importadas:' : '.'}</p>`
+    + (r.erros.length ? '<ul style="font-size:.85rem;">' + r.erros.slice(0, 30).map(e => `<li>Linha ${e.linha}: ${h(e.msg)}</li>`).join('') + (r.erros.length > 30 ? `<li>e mais ${r.erros.length - 30} linha(s).</li>` : '') + '</ul>' : '')
+    + (r.validas.length ? `<button class="btn primary" onclick="confirmarImportacao()">Importar ${r.validas.length} ficha(s)</button>` : '');
+}
+function confirmarImportacao(){
+  const r = importacaoPendente;
+  if(!r || !r.validas.length) return;
+  let novos = 0;
+  r.validas.forEach(v => {
+    let cl = (v.cpf && clientes.find(c => c.cpf === v.cpf)) || clientes.find(c => normalizaTxt(c.nome) === normalizaTxt(v.cliente) && (c.bairro || '') === v.bairro);
+    if(!cl){
+      cl = { id: 'cl' + (clientes.length + 1), nome: v.cliente, endereco: v.endereco, bairro: v.bairro, referencia: v.referencia, telefone: v.telefone, ...(v.cpf ? { cpf: v.cpf } : {}) };
+      clientes.push(cl); novos++;
+    } else {
+      if(v.telefone && !cl.telefone) cl.telefone = v.telefone;
+      if(v.endereco && !cl.endereco) cl.endereco = v.endereco;
+      if(v.cpf && !cl.cpf) cl.cpf = v.cpf;
+    }
+    fichas.push({ numero: numPad(v.numero), clienteId: cl.id, cobradorId: cobradorPorBairro(v.bairro), mercadoria: v.mercadoria,
+      valorTotal: v.total, valorPago: v.pago, parcela: v.parcela, vencimento: v.data, status: 'pendente', quitada: v.pago >= v.total,
+      pagamentos: v.pago > 0 ? [{ data: HOJE, valor: v.pago, forma: '—', inicial: true }] : [] });
+  });
+  registrar('Importação de fichas', `${r.validas.length} ficha(s) importada(s), ${novos} cliente(s) novo(s)`);
+  const n = r.validas.length;
+  importacaoPendente = null;
+  document.getElementById('import-arquivo').value = '';
+  document.getElementById('import-resumo').innerHTML = `<p style="color:var(--ledger-green);font-weight:600;">${n} ficha(s) importada(s) e distribuída(s) pelas rotas.</p>`;
+  renderAdmin(); renderCobrador();
+}
+function baixarModeloImportacao(){
+  const b = todosBairros()[0] || 'Centro';
+  baixarArquivo('modelo-importacao-fichas.csv', csvTexto(
+    ['numero','cliente','bairro','endereco','referencia','telefone','cpf','mercadoria','valor_total','valor_pago','parcela','proxima_cobranca'],
+    [['000620','Maria da Silva', b, 'Rua A, 10', 'portão azul', '91999990000', '', 'Panelas', '340,00', '85,00', '85,00', '15/11/2026'],
+     ['000621','João Pereira', b, 'Av. B, 200', '', '', '', 'Roupas', '480,00', '0', '120,00', '16/11/2026']]), 'text/csv;charset=utf-8');
+}
+
+// ---------- Backup e exportação ----------
+function exportarBackup(){
+  const dados = { sistema:'Rota Certa', versao:1, geradoEm:new Date().toISOString(), cobradores, clientes, fichas, vales,
+    enviosDia, confirmacoesAdmin, entregasRegistradas, ultimaPrestacao, saldosAcumulados, auditoria };
+  baixarArquivo('rota-certa-backup-' + HOJE + '.json', JSON.stringify(dados, null, 1), 'application/json');
+  registrar('Backup baixado', '');
+}
+function restaurarBackup(){
+  const arq = document.getElementById('backup-arquivo').files[0];
+  const st = document.getElementById('backup-status');
+  if(!arq) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const d = JSON.parse(rd.result);
+      if(d.sistema !== 'Rota Certa' || !Array.isArray(d.fichas) || !Array.isArray(d.cobradores) || !Array.isArray(d.clientes)) throw new Error('arquivo inválido');
+      cobradores = d.cobradores; fichas = d.fichas; vales = d.vales || [];
+      clientes.splice(0, clientes.length, ...d.clientes);
+      enviosDia = d.enviosDia || {}; confirmacoesAdmin = d.confirmacoesAdmin || {}; entregasRegistradas = d.entregasRegistradas || {};
+      ultimaPrestacao = d.ultimaPrestacao || {}; saldosAcumulados = d.saldosAcumulados || {}; auditoria = d.auditoria || [];
+      registrar('Backup restaurado', 'Arquivo de ' + (d.geradoEm ? dataHoraBR(d.geradoEm) : 'data desconhecida'));
+      populateCobradorSelect(); renderAdmin(); renderCobrador();
+      st.textContent = 'Backup restaurado.'; st.style.color = 'var(--ledger-green)';
+    } catch(e){
+      st.textContent = 'Não foi possível ler esse arquivo. Use um backup baixado por este sistema.'; st.style.color = 'var(--stamp-red)';
+    }
+    document.getElementById('backup-arquivo').value = '';
+  };
+  rd.readAsText(arq, 'utf-8');
+}
+function exportarTabela(tipo){
+  if(tipo === 'fichas'){
+    baixarArquivo('fichas.csv', csvTexto(['numero','cliente','telefone','bairro','endereco','cobrador','mercadoria','valor_total','valor_pago','restante','parcela','proxima_cobranca','situacao'],
+      fichas.map(f => { const c = clientes.find(x => x.id===f.clienteId) || {}, d = dataProxima(f);
+        return [f.numero, c.nome, c.telefone, c.bairro, c.endereco, cobradorNome(f.cobradorId), f.mercadoria, numBR(f.valorTotal), numBR(f.valorPago),
+          numBR(f.valorTotal - f.valorPago), numBR(f.parcela), d ? dataBR(d) : '', f.cancelada ? 'cancelada' : f.quitada ? 'quitada' : diasAtraso(f) > 0 ? 'atrasada' : 'em cobrança']; })),
+      'text/csv;charset=utf-8');
+  } else if(tipo === 'pagamentos'){
+    baixarArquivo('pagamentos.csv', csvTexto(['data','ficha','cliente','cobrador','forma','valor','observacao'],
+      fichas.flatMap(f => (f.pagamentos || []).map(p => [dataBR(p.data), f.numero, clienteNome(f.clienteId), cobradorNome(f.cobradorId), formaTxt(p.forma), numBR(p.valor), p.inicial ? 'anterior ao sistema' : (p.corrigido ? 'corrigido' : '')]))),
+      'text/csv;charset=utf-8');
+  } else {
+    baixarArquivo('clientes.csv', csvTexto(['nome','cpf','telefone','bairro','endereco','referencia','fichas'],
+      clientes.map(c => [c.nome, mascaraCPF(c.cpf), c.telefone, c.bairro, c.endereco, c.referencia, fichas.filter(f => f.clienteId===c.id).length])),
+      'text/csv;charset=utf-8');
+  }
+}
+
+// ---------- Modo sem internet (simulação para demonstrar o comportamento) ----------
+function atualizarBannerOffline(){
+  const b = document.getElementById('banner-offline'), btn = document.getElementById('btn-offline');
+  if(!b) return;
+  if(modoOffline){
+    b.innerHTML = `<b class="atraso">Sem internet</b> · ${pendentesEnvio} registro(s) guardado(s) no aparelho, serão enviados quando a conexão voltar.`;
+    btn.textContent = 'Voltar a ficar online';
+  } else {
+    b.innerHTML = '<span style="color:var(--ledger-green);font-weight:600;">Online</span>' + (ultimaSync ? ' · ' + ultimaSync : '');
+    btn.textContent = 'Simular sem internet';
+  }
+}
+function alternarOffline(){
+  if(modoOffline){
+    const n = pendentesEnvio;
+    modoOffline = false; pendentesEnvio = 0;
+    ultimaSync = n ? n + ' registro(s) enviado(s) agora' : '';
+    if(n) registrar('Sincronização', n + ' registro(s) enviado(s) depois que a conexão voltou');
+  } else { modoOffline = true; ultimaSync = ''; }
+  atualizarBannerOffline();
+}
+
+// ---------- Ganchos: registro automático das ações já existentes ----------
+const _renderCobrador = renderCobrador;
+renderCobrador = function(){ _renderCobrador(); atualizarBannerOffline(); };
+
+const _renderAdmin = renderAdmin;
+renderAdmin = function(){ _renderAdmin(); renderRegistro(); renderTransferencia(); };
+
+const _confirmarBaixa = confirmarBaixa;
+confirmarBaixa = function(numero){
+  const f = fichas.find(x => x.numero===numero), n = (f.pagamentos || []).length;
+  _confirmarBaixa(numero);
+  if((f.pagamentos || []).length > n){
+    const p = f.pagamentos[f.pagamentos.length - 1];
+    registrar('Baixa', `Ficha ${numero} · ${h(clienteNome(f.clienteId))} · ${formatBRL(p.valor)} em ${formaTxt(p.forma)}`);
+    if(modoOffline){ pendentesEnvio++; atualizarBannerOffline(); }
+  }
+};
+const _confirmarRemarcacao = confirmarRemarcacao;
+confirmarRemarcacao = function(numero){
+  const f = fichas.find(x => x.numero===numero), antes = f.status;
+  _confirmarRemarcacao(numero);
+  if(antes !== 'remarcada' && f.status === 'remarcada'){
+    registrar('Remarcação', `Ficha ${numero} · ${h(clienteNome(f.clienteId))} · para ${dataBR(f.novaData)}`);
+    if(modoOffline){ pendentesEnvio++; atualizarBannerOffline(); }
+  }
+};
+const _enviarResultadoDia = enviarResultadoDia;
+enviarResultadoDia = function(){
+  if(modoOffline){
+    document.getElementById('banner-offline').innerHTML = '<b class="atraso">Sem internet:</b> o resultado do dia só pode ser enviado quando a conexão voltar. Suas baixas continuam guardadas no aparelho.';
+    return;
+  }
+  const id = document.getElementById('select-cobrador').value;
+  _enviarResultadoDia();
+  registrar('Resultado do dia enviado', h(cobradorNome(id)));
+};
+const _lancarFicha = lancarFicha;
+lancarFicha = function(){
+  const n = fichas.length;
+  _lancarFicha();
+  if(fichas.length > n){
+    const f = fichas[fichas.length - 1];
+    registrar('Ficha lançada', `Ficha ${f.numero} · ${h(clienteNome(f.clienteId))} · ${formatBRL(f.valorTotal)} · ${h(cobradorNome(f.cobradorId))}`);
+    document.getElementById('lancar-telefone').value = '';
+  }
+};
+const _registrarVale = registrarVale;
+registrarVale = function(){
+  const n = vales.length;
+  _registrarVale();
+  if(vales.length > n){ const v = vales[vales.length - 1]; registrar('Vale registrado', `${h(cobradorNome(v.cobradorId))} · ${formatBRL(v.valor)}`); }
+};
+const _cadastrarCobrador = cadastrarCobrador;
+cadastrarCobrador = function(){
+  if(cobradoresAtivos().length >= EMPRESA.cobradoresIncluidos && !extraConfirmado){
+    const st = document.getElementById('cobrador-status');
+    st.textContent = 'Atenção: sua empresa já usa as ' + EMPRESA.cobradoresIncluidos + ' vagas de cobrador incluídas. Este cobrador será extra e cobrado à parte. Clique em "Cadastrar cobrador" de novo para confirmar.';
+    st.style.color = 'var(--stamp-red)';
+    extraConfirmado = true;
+    return;
+  }
+  const n = cobradores.length;
+  _cadastrarCobrador();
+  if(cobradores.length > n){
+    const extra = cobradoresAtivos().length > EMPRESA.cobradoresIncluidos;
+    registrar('Cobrador cadastrado', h(cobradores[n].nome) + (extra ? ' (cobrador extra)' : ''));
+    extraConfirmado = false;
+  }
+};
+const _trocarSenha = trocarSenha;
+trocarSenha = function(id){
+  const c = cobradores.find(x => x.id===id), antes = c.senha;
+  _trocarSenha(id);
+  if(c.senha !== antes) registrar('Senha de cobrador alterada', h(c.nome));
+};
+const _confirmarEntrega = confirmarEntregaCobrador;
+confirmarEntregaCobrador = function(){
+  const id = cobradorInspecionadoId, antes = confirmacoesAdmin[id];
+  _confirmarEntrega();
+  if(!antes && confirmacoesAdmin[id]){
+    const e = entregasRegistradas[id] || {};
+    registrar('Dia conferido', `${h(cobradorNome(id))} · espécie entregue ${formatBRL(e.valorEntregue || 0)}` + (e.diferenca > 0 ? ` · diferença de ${formatBRL(e.diferenca)} lançada como vale` : ''));
+  }
+};
+const _confirmarPrestacao = confirmarPrestacaoContas;
+confirmarPrestacaoContas = function(){
+  const id = cobradorInspecionadoId, r = calcularPrestacao(id);
+  _confirmarPrestacao();
+  registrar('Prestação de contas', `${h(cobradorNome(id))} · cobrado ${formatBRL(r.totalCobrado)} · saldo final ${formatBRL(r.saldoFinal)}`);
+};
+const _trazerParaHoje = trazerParaHoje;
+trazerParaHoje = function(numero){
+  const f = fichas.find(x => x.numero===numero);
+  _trazerParaHoje(numero);
+  registrar('Ficha trazida para hoje', `Ficha ${numero} · ${h(clienteNome(f.clienteId))}`);
+};
+const _salvarEdicao = salvarEdicao;
+salvarEdicao = function(numero){
+  const f = fichas.find(x => x.numero===numero), c = clientes.find(x => x.id===f.clienteId) || {};
+  const foto = () => ({ 'Endereço': c.endereco, 'Referência': c.referencia, 'Telefone': c.telefone, 'CPF': c.cpf, 'Mercadoria': f.mercadoria,
+    'Valor total': formatBRL(f.valorTotal), 'Parcela': formatBRL(f.parcela), 'Cobrador': cobradorNome(f.cobradorId) });
+  const a = foto();
+  const cpfNovo = soDigitos(document.getElementById('ed-cpf')?.value);
+  const erroCpf = document.getElementById('ed-cpf-erro');
+  if(erroCpf) erroCpf.textContent = '';
+  if(cpfNovo !== (c.cpf || '')){
+    const outro = cpfNovo ? clientes.find(x => x.id !== c.id && x.cpf === cpfNovo) : null;
+    const msgErro = (cpfNovo && !validarCPF(cpfNovo)) ? 'CPF inválido.' : outro ? 'Este CPF já está cadastrado para ' + outro.nome + '.' : '';
+    if(msgErro){ if(erroCpf) erroCpf.textContent = msgErro; return; }
+    if(cpfNovo) c.cpf = cpfNovo; else delete c.cpf;
+  }
+  _salvarEdicao(numero);
+  const d = foto(), mud = Object.keys(d).filter(k => (a[k] || '') !== (d[k] || '')).map(k => k === 'CPF' ? 'CPF alterado' : `${k}: ${h(a[k] || '—')} → ${h(d[k] || '—')}`);
+  registrar('Ficha editada', `Ficha ${numero} · ${h(clienteNome(f.clienteId))} · ` + (mud.length ? mud.join('; ') : 'sem mudança de dados'));
+};
+
+// ============================================================
+// Inicialização
+// ============================================================
+populateCobradorSelect();
+renderCobrador();
+document.getElementById('chave-empresa').textContent = EMPRESA.chave;
+
+// Para o protótipo abrir direto, sem tela de entrada. Troque para true para exigir chave, usuário e senha.
+const EXIGIR_LOGIN = !!(window.RC && RC.real);
+if(!EXIGIR_LOGIN){
+  sessao = { papel: 'admin' };
+  document.getElementById('tela-login').style.display = 'none';
+}
+</script>
+
+<script>
+// ============================================================
+// Rota Certa — camada Supabase (só ativa quando URL e chave estão preenchidas)
+// ============================================================
+(function(){
+'use strict';
+if(!window.RC || !RC.real) return;
+
+// apaga os dados de demonstração do protótipo antes de qualquer coisa
+cobradores = []; clientes.length = 0; fichas = []; vales = []; enviosDia = {}; confirmacoesAdmin = {}; entregasRegistradas = {}; auditoria = [];
+const CFG = RC.CONFIG;
+const criar = window.RC_CLIENT_FACTORY || ((u, k, o) => window.supabase.createClient(u, k, o));
+const db = criar(CFG.url, CFG.anonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+const dbAux = criar(CFG.url, CFG.anonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+
+const $ = id => document.getElementById(id);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+const limpa = s => String(s ?? '').replace(/[<>]/g, '');
+const n2 = x => Math.round(Number(x || 0) * 100) / 100;
+const desh = s => String(s || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+const emailDe = (u, c) => String(u).trim().toLowerCase() + '+' + String(c).trim().toLowerCase() + '@' + CFG.dominio;
+const REGEX_ID = /^[a-z0-9._-]{3,30}$/;
+const JANELA_DIAS = 45;
+const PAGINA = 1000;
+
+let eu = null;                 // { id, papel, nome, usuario }
+let fila = [], problemas = [], ultimaSync = '';
+let ocupado = false, sincronizando = false, arquivadasOk = false;
+let pagHoje = [];
+let prestCache = {};
+const porId = new Map();       // ficha.id -> ficha
+const cliMap = new Map();      // cliente.id -> cliente
+
+const desde = () => { const d = new Date(HOJE + 'T12:00:00'); d.setDate(d.getDate() - JANELA_DIAS); return d.toISOString().slice(0, 10); };
+const isRede = e => /failed to fetch|networkerror|load failed|fetch failed|network request failed/i.test(String(e && e.message || e));
+const isAuth = e => /jwt|token|not authenticated/i.test(String(e && e.message || e)) || (e && (e.status === 401));
+
+// ---------- avisos ----------
+function aviso(msg, ok){
+  let t = $('rc-toast');
+  if(!t){ t = document.createElement('div'); t.id = 'rc-toast';
+    t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:300;max-width:92vw;padding:10px 16px;border-radius:6px;font-size:.9rem;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);';
+    document.body.appendChild(t); }
+  t.style.background = ok ? 'var(--ledger-green)' : 'var(--stamp-red)';
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._t); t._t = setTimeout(() => { t.style.display = 'none'; }, ok ? 3500 : 9000);
+}
+function msgErro(e){
+  const m = String(e && e.message || e || 'Erro desconhecido');
+  if(isRede(m)) return 'Sem conexão com a internet. Tente de novo.';
+  if(/invalid login/i.test(m)) return 'Usuário, chave ou senha incorretos.';
+  if(/already registered|user_already_exists/i.test(m)) return 'Esse usuário já existe.';
+  if(/password should be at least|weak_password/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
+  if(/email_address_invalid|email address .* is invalid|unable to validate email/i.test(m)) return 'O Supabase recusou o e-mail interno de acesso. Veja DOMINIO_EMAIL no passo a passo.';
+  return m.replace(/^DIA_FECHADO: /, 'Dia já conferido: ');
+}
+const mostrarErroEm = (el, msg) => { if(!el) return; if(el.tagName === 'DIV' || el.tagName === 'P' || el.tagName === 'SPAN'){ el.textContent = msg; el.style.color = 'var(--stamp-red)'; } };
+
+// ---------- acesso ao banco ----------
+async function rpc(nome, args){
+  const { data, error } = await db.rpc(nome, args || {});
+  if(error) throw error;
+  return data;
+}
+// lê todas as linhas (o Supabase devolve no máximo 1000 por pedido)
+async function lerTudo(tabela, cols, filtro, ordem){
+  const mk = () => { let q = db.from(tabela).select(cols, { count: 'exact' }); if(filtro) q = filtro(q); return q.order(ordem || 'id'); };
+  const p = await mk().range(0, PAGINA - 1);
+  if(p.error) throw p.error;
+  let linhas = p.data || []; const total = p.count == null ? linhas.length : p.count;
+  const inicios = []; for(let i = PAGINA; i < total; i += PAGINA) inicios.push(i);
+  for(let k = 0; k < inicios.length; k += 5){
+    const lote = await Promise.all(inicios.slice(k, k + 5).map(i => mk().range(i, i + PAGINA - 1)));
+    lote.forEach(r => { if(r.error) throw r.error; linhas = linhas.concat(r.data || []); });
+  }
+  return linhas;
+}
+async function porLotes(ids, tamanho, fn){
+  const out = [];
+  for(let k = 0; k < ids.length; k += tamanho * 5){
+    const grupo = []; for(let j = k; j < Math.min(ids.length, k + tamanho * 5); j += tamanho) grupo.push(ids.slice(j, j + tamanho));
+    const r = await Promise.all(grupo.map(fn)); r.forEach(x => out.push(...x));
+  }
+  return out;
+}
+
+// ---------- tradução banco -> formato da tela ----------
+const FICHA_COLS = 'id,numero,cliente_id,cobrador_id,mercadoria,valor_total,valor_pago,parcela,data_cobranca,status,proxima_data,nao_visitada,quitada,cancelada,motivo_cancelamento';
+const PG_COLS = 'id,ficha_id,cobrador_id,data,valor,forma,inicial,corrigido,criado_em';
+
+function aplicarRow(f){
+  const r = f._row;
+  f.numero = numPad(r.numero); f.clienteId = r.cliente_id; f.cobradorId = r.cobrador_id;
+  f.mercadoria = limpa(r.mercadoria); f.valorTotal = +r.valor_total; f.valorPago = +r.valor_pago; f.parcela = +r.parcela;
+  f.vencimento = r.data_cobranca; f.status = r.status; f.cancelada = !!r.cancelada; f.quitada = !!(r.quitada || r.cancelada);
+  f.motivoCancelamento = limpa(r.motivo_cancelamento);
+  delete f.novaData; delete f.proximaData; delete f.remarcacaoAutomatica;
+  if(r.status === 'remarcada'){ f.novaData = r.proxima_data; if(r.nao_visitada) f.remarcacaoAutomatica = true; }
+  if(r.status === 'paga' && r.proxima_data && !f.quitada) f.proximaData = r.proxima_data;
+}
+function upsertFichas(rows){
+  const novos = [];
+  rows.forEach(r => {
+    let f = porId.get(r.id);
+    if(f){ f._row = r; }
+    else { f = { id: r.id, pagamentos: [], _row: r }; fichas.push(f); porId.set(r.id, f); novos.push(r.id); }
+    aplicarRow(f);
+  });
+  return novos;
+}
+function mapCliente(r, cpf){
+  return Object.assign({ id: r.id, nome: limpa(r.nome), endereco: limpa(r.endereco), referencia: limpa(r.referencia), bairro: limpa(r.bairro), telefone: limpa(r.telefone) }, cpf ? { cpf } : {});
+}
+function upsertClientes(rows, docs){
+  const cpfs = new Map((docs || []).map(d => [d.cliente_id, String(d.cpf).trim()]));
+  rows.forEach(r => {
+    const novo = mapCliente(r, cpfs.get(r.id)), velho = cliMap.get(r.id);
+    if(velho){ const i = clientes.indexOf(velho); clientes[i] = novo; } else clientes.push(novo);
+    cliMap.set(r.id, novo);
+  });
+}
+async function buscarFichasPorIds(ids){
+  return porLotes(ids, 100, async lote => { const r = await db.from('fichas').select(FICHA_COLS).in('id', lote); if(r.error) throw r.error; return r.data || []; });
+}
+async function buscarClientes(ids){
+  if(!ids.length) return;
+  const rows = await porLotes(ids, 100, async lote => { const r = await db.from('clientes').select('id,nome,endereco,referencia,bairro,telefone').in('id', lote); if(r.error) throw r.error; return r.data || []; });
+  const docs = eu.papel === 'admin' ? await porLotes(ids, 100, async lote => { const r = await db.from('clientes_documentos').select('cliente_id,cpf').in('cliente_id', lote); if(r.error) throw r.error; return r.data || []; }) : [];
+  upsertClientes(rows, docs);
+}
+const garantirClientes = () => buscarClientes([...new Set(fichas.map(f => f.clienteId))].filter(id => !cliMap.has(id)));
+
+async function aplicarPagamentosRows(rows, o){
+  o = o || {};
+  const faltam = [...new Set(rows.map(r => r.ficha_id))].filter(id => !porId.has(id));
+  if(faltam.length) upsertFichas(await buscarFichasPorIds(faltam));
+  if(o.substituirIds) o.substituirIds.forEach(id => { const f = porId.get(id); if(f){ f.pagamentos = []; f._pgCompleto = true; } });
+  if(o.substituirData) fichas.forEach(f => { if(f.pagamentos.length) f.pagamentos = f.pagamentos.filter(p => p.data !== o.substituirData); });
+  const tocadas = new Set();
+  rows.forEach(r => {
+    const f = porId.get(r.ficha_id); if(!f) return;
+    f.pagamentos.push({ id: r.id, data: r.data, valor: +r.valor, forma: r.forma || '—', inicial: !!r.inicial, corrigido: !!r.corrigido, cobradorId: r.cobrador_id, _t: r.criado_em });
+    tocadas.add(f);
+  });
+  tocadas.forEach(f => f.pagamentos.sort((a, b) => a._t < b._t ? -1 : a._t > b._t ? 1 : 0));
+}
+
+// totais do dia, derivados dos pagamentos (a ficha "rola" para a próxima data na conferência)
+function derivar(){
+  pagHoje = [];
+  fichas.forEach(f => {
+    aplicarRow(f);
+    delete f.valorRecebidoHoje; delete f.formaPagamento;
+    const reais = f.pagamentos.filter(p => !p.inicial);
+    const hoje = reais.filter(p => p.data === HOJE);
+    hoje.forEach(p => pagHoje.push(p));
+    if(!f.cancelada && hoje.length && f._row.data_cobranca !== HOJE && confirmacoesAdmin[f.cobradorId]){
+      f.vencimento = HOJE; f.status = 'paga';
+      if(!f.quitada) f.proximaData = f._row.data_cobranca;
+    }
+    if(f.status === 'paga'){
+      const dia = reais.filter(p => p.data === f.vencimento);
+      if(dia.length){ f.valorRecebidoHoje = n2(dia.reduce((s, p) => s + p.valor, 0)); f.formaPagamento = dia[dia.length - 1].forma; }
+    }
+  });
+}
+function limparFalsos(){
+  for(let i = fichas.length - 1; i >= 0; i--) if(!fichas[i].id) fichas.splice(i, 1);
+  for(let i = clientes.length - 1; i >= 0; i--) if(!UUID_RE.test(clientes[i].id)) clientes.splice(i, 1);
+}
+
+// ---------- carga dos dados ----------
+function aplicarFech(fech){
+  enviosDia = {}; confirmacoesAdmin = {}; entregasRegistradas = {};
+  fech.forEach(r => {
+    if(r.enviado_em) enviosDia[r.cobrador_id] = true;
+    if(r.confirmado_em){ confirmacoesAdmin[r.cobrador_id] = true; entregasRegistradas[r.cobrador_id] = { valorEntregue: +r.especie_entregue || 0, diferenca: +r.diferenca || 0 }; }
+  });
+}
+const FECH_COLS = 'cobrador_id,enviado_em,confirmado_em,especie_entregue,diferenca';
+async function carregarPequenas(){
+  const adm = eu.papel === 'admin';
+  const [emp, perfis, rotas, vls, fech, aud] = await Promise.all([
+    db.from('empresas').select('id,nome,chave_acesso,ativa,cobradores_incluidos').single(),
+    lerTudo('perfis', 'id,nome,usuario,papel,periodicidade,comissao_pct,ativo'),
+    lerTudo('rotas_bairros', 'bairro,cobrador_id', null, 'bairro'),
+    lerTudo('vales', 'id,cobrador_id,data,valor,origem,criado_em'),
+    lerTudo('fechamentos_dia', FECH_COLS, q => q.eq('data', HOJE), 'cobrador_id'),
+    adm ? db.from('auditoria').select('quem,acao,detalhe,criado_em').order('criado_em', { ascending: false }).limit(300) : Promise.resolve({ data: [] })
+  ]);
+  if(emp.error) throw emp.error;
+  if(!emp.data.ativa) throw new Error('A assinatura desta empresa está suspensa. Entre em contato com o suporte.');
+  EMPRESA.nome = limpa(emp.data.nome); EMPRESA.chave = emp.data.chave_acesso; EMPRESA.cobradoresIncluidos = emp.data.cobradores_incluidos;
+  const ce = $('chave-empresa'); if(ce) ce.textContent = EMPRESA.chave;
+  cobradores = perfis.filter(p => p.papel === 'cobrador').map(p => ({
+    id: p.id, nome: limpa(p.nome), login: p.usuario, senha: '', periodicidade: p.periodicidade, comissao: +p.comissao_pct, bairros: [], ativo: !!p.ativo
+  })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  rotas.forEach(r => { const c = cobradores.find(x => x.id === r.cobrador_id); if(c) c.bairros.push(limpa(r.bairro)); });
+  vales = vls.sort((a, b) => a.criado_em < b.criado_em ? -1 : 1).map(v => ({
+    cobradorId: v.cobrador_id, valor: +v.valor, data: v.data,
+    origem: v.origem === 'diferenca_fechamento' ? 'Diferença não repassada no fechamento do dia' : undefined
+  }));
+  aplicarFech(fech);
+  auditoria = (aud.data || []).slice().reverse().map(r => ({ quando: r.criado_em, quem: limpa(r.quem), acao: limpa(r.acao), detalhe: h(r.detalhe) }));
+  if(prestacaoAberta){ try { prestCache[prestacaoAberta] = await rpc('calcular_prestacao', { p_cobrador: prestacaoAberta }); } catch(e){} }
+}
+async function carregarGrandes(){
+  const adm = eu.papel === 'admin', d0 = desde();
+  const [cli, docs, ativas, recentes] = await Promise.all([
+    lerTudo('clientes', 'id,nome,endereco,referencia,bairro,telefone'),
+    adm ? lerTudo('clientes_documentos', 'cliente_id,cpf', null, 'cliente_id') : Promise.resolve([]),
+    lerTudo('fichas', FICHA_COLS, q => q.eq('quitada', false).eq('cancelada', false)),
+    lerTudo('fichas', FICHA_COLS, q => q.or('quitada.eq.true,cancelada.eq.true').gte('data_cobranca', d0))
+  ]);
+  clientes.length = 0; cliMap.clear(); fichas.length = 0; porId.clear(); arquivadasOk = false;
+  upsertClientes(cli, docs);
+  upsertFichas(ativas); upsertFichas(recentes);
+  await aplicarPagamentosRows(await lerTudo('pagamentos', PG_COLS, q => q.gte('data', d0)));
+  await garantirClientes();
+}
+async function carregarArquivadas(){
+  if(arquivadasOk) return;
+  const rows = await lerTudo('fichas', FICHA_COLS, q => q.or('quitada.eq.true,cancelada.eq.true'));
+  upsertFichas(rows.filter(r => !porId.has(r.id)));
+  await garantirClientes();
+  arquivadasOk = true; derivar();
+}
+async function refazerFichas(ids){
+  const rows = await buscarFichasPorIds(ids);
+  upsertFichas(rows);
+  await buscarClientes([...new Set(rows.map(r => r.cliente_id))]);
+  const pg = await porLotes(ids, 100, async lote => { const r = await db.from('pagamentos').select(PG_COLS).in('ficha_id', lote); if(r.error) throw r.error; return r.data || []; });
+  await aplicarPagamentosRows(pg, { substituirIds: ids });
+}
+async function refazerPorCobrador(cobs){
+  const rows = await lerTudo('fichas', FICHA_COLS, q => q.in('cobrador_id', cobs).eq('quitada', false).eq('cancelada', false));
+  const novos = upsertFichas(rows);
+  await garantirClientes();
+  if(novos.length){
+    const pg = await porLotes(novos, 100, async lote => { const r = await db.from('pagamentos').select(PG_COLS).in('ficha_id', lote).gte('data', desde()); if(r.error) throw r.error; return r.data || []; });
+    await aplicarPagamentosRows(pg);
+  }
+}
+async function recarregar(o){
+  o = o || {};
+  limparFalsos();
+  await carregarPequenas();
+  if(o.todos) await carregarGrandes();
+  else {
+    if(o.fichas && o.fichas.length) await refazerFichas(o.fichas);
+    if(o.cobradores && o.cobradores.length) await refazerPorCobrador(o.cobradores);
+  }
+  derivar(); renderTudo(); salvarCache();
+}
+function renderTudo(){
+  populateCobradorSelect();
+  if(!eu) return;
+  if(eu.papel === 'admin'){
+    renderAdmin();
+    const p = $('detalhe-cobrador-panel');
+    if(cobradorInspecionadoId && p && p.classList.contains('show') && cobradores.some(c => c.id === cobradorInspecionadoId)) inspecionarCobrador(cobradorInspecionadoId);
+  } else { $('select-cobrador').value = eu.id; renderCobrador(); }
+}
+// executa uma ação do administrador e atualiza a tela com o que o banco guardou de verdade
+async function executar(fn, ops, el){
+  ocupado = true;
+  try { const r = await fn(); await recarregar(ops); return r === undefined ? true : r; }
+  catch(e){
+    const m = msgErro(e); aviso(m); mostrarErroEm(el, m);
+    try { await recarregar(ops); } catch(_){}
+    return undefined;
+  } finally { ocupado = false; }
+}
+
+// ---------- cache para abrir sem internet (só cobrador) ----------
+function salvarCache(){
+  if(!eu || eu.papel !== 'cobrador') return;
+  try {
+    localStorage.setItem('rc_cache_' + eu.id, JSON.stringify({ eu, hoje: HOJE, empresa: { nome: EMPRESA.nome, chave: EMPRESA.chave }, cobradores, clientes, fichas, vales, enviosDia, confirmacoesAdmin, entregasRegistradas }));
+    localStorage.setItem('rc_ultimo', eu.id);
+  } catch(e){}
+}
+function restaurarCache(){
+  try {
+    const id = localStorage.getItem('rc_ultimo'); if(!id) return false;
+    const c = JSON.parse(localStorage.getItem('rc_cache_' + id) || 'null'); if(!c) return false;
+    eu = c.eu; sessao = { papel: 'cobrador', id: eu.id };
+    EMPRESA.nome = c.empresa.nome; EMPRESA.chave = c.empresa.chave;
+    cobradores = c.cobradores; vales = c.vales; enviosDia = c.enviosDia; confirmacoesAdmin = c.confirmacoesAdmin; entregasRegistradas = c.entregasRegistradas;
+    clientes.length = 0; cliMap.clear(); c.clientes.forEach(x => { clientes.push(x); cliMap.set(x.id, x); });
+    fichas.length = 0; porId.clear(); c.fichas.forEach(f => { fichas.push(f); porId.set(f.id, f); });
+    HOJE = RC.hoje(); lerFila(); return true;
+  } catch(e){ return false; }
+}
+
+// ---------- fila de envio (cobrador, funciona sem internet) ----------
+const chaveFila = () => 'rc_fila_' + eu.id;
+function salvarFila(){ try { localStorage.setItem(chaveFila(), JSON.stringify(fila)); localStorage.setItem('rc_prob_' + eu.id, JSON.stringify(problemas)); } catch(e){} }
+function lerFila(){ try { fila = JSON.parse(localStorage.getItem(chaveFila()) || '[]'); problemas = JSON.parse(localStorage.getItem('rc_prob_' + eu.id) || '[]'); } catch(e){ fila = []; problemas = []; } }
+function enfileirar(item){ item.id = uuid(); item.criado = new Date().toISOString(); fila.push(item); salvarFila(); atualizarBannerOffline(); sincronizar(); }
+function descreverItem(it){
+  if(it.tipo === 'baixa') return 'Baixa de ' + formatBRL(it.valor) + ' na ficha ' + it.numero;
+  if(it.tipo === 'remarcar') return 'Remarcação da ficha ' + it.numero;
+  if(it.tipo === 'proxima') return 'Próxima data da ficha ' + it.numero;
+  return 'Envio do resultado do dia';
+}
+async function enviarItem(it){
+  if(it.tipo === 'baixa') return rpc('registrar_baixa', { p_ficha: it.fichaId, p_valor: it.valor, p_forma: it.forma, p_proxima: it.proxima || null, p_id_cliente_app: it.idc, p_data: it.data });
+  if(it.tipo === 'remarcar') return rpc('remarcar_ficha', { p_ficha: it.fichaId, p_nova: it.nova, p_data: it.data });
+  if(it.tipo === 'proxima') return rpc('alterar_proxima_data', { p_ficha: it.fichaId, p_data: it.nova });
+  if(it.tipo === 'enviar') return rpc('enviar_resultado_dia', { p_data: it.data });
+}
+async function sincronizar(){
+  if(sincronizando || !eu || eu.papel !== 'cobrador' || !fila.length || !navigator.onLine) return;
+  sincronizando = true; let enviados = 0;
+  try {
+    while(fila.length){
+      const it = fila[0];
+      try { await enviarItem(it); fila.shift(); enviados++; salvarFila(); }
+      catch(e){
+        if(isRede(e) || isAuth(e)) break;
+        fila.shift(); problemas.push({ quando: it.criado, msg: descreverItem(it) + ': ' + msgErro(e) }); salvarFila();
+      }
+    }
+  } finally { sincronizando = false; }
+  if(enviados) ultimaSync = enviados + ' registro(s) enviado(s) agora';
+  if(!fila.length && (enviados || problemas.length)){ try { await recarregar({ todos: true }); } catch(e){} }
+  atualizarBannerOffline();
+}
+window.RC_limparProblemas = function(){ problemas = []; salvarFila(); atualizarBannerOffline(); };
+atualizarBannerOffline = function(){
+  const b = $('banner-offline'); if(!b) return;
+  const btn = $('btn-offline'); if(btn) btn.style.display = 'none';
+  const off = !navigator.onLine, n = fila.length;
+  let t = off ? `<b class="atraso">Sem internet</b> · ${n} registro(s) guardado(s) no aparelho, serão enviados quando a conexão voltar.`
+    : n ? `Enviando ${n} registro(s) guardado(s)…`
+    : '<span style="color:var(--ledger-green);font-weight:600;">Online</span>' + (ultimaSync ? ' · ' + ultimaSync : '');
+  if(problemas.length) t += `<div class="atraso" style="margin-top:6px;font-size:.82rem;">${problemas.length} registro(s) não foram aceitos pelo sistema:<br>` + problemas.map(p => h(p.msg)).join('<br>') + ` <a href="#" onclick="RC_limparProblemas();return false;">Entendi</a></div>`;
+  b.innerHTML = t;
+};
+window.addEventListener('online', () => { atualizarBannerOffline(); sincronizar(); });
+window.addEventListener('offline', () => atualizarBannerOffline());
+
+// ---------- atualização do dia (o administrador vê o resultado enviado pelos cobradores) ----------
+async function atualizarDia(){
+  if(!eu || ocupado || sincronizando || fila.length || !navigator.onLine) return;
+  ocupado = true;
+  try {
+    if(RC.hoje() !== HOJE){ HOJE = RC.hoje(); await recarregar({ todos: true }); return; }
+    const fech = await lerTudo('fechamentos_dia', FECH_COLS, q => q.eq('data', HOJE), 'cobrador_id');
+    const novo = fech.filter(r => r.confirmado_em).map(r => r.cobrador_id).sort().join();
+    if(novo !== Object.keys(confirmacoesAdmin).sort().join()){ await recarregar({ todos: true }); return; }
+    aplicarFech(fech);
+    const [fr, pg] = await Promise.all([ lerTudo('fichas', FICHA_COLS, q => q.eq('data_cobranca', HOJE)), lerTudo('pagamentos', PG_COLS, q => q.eq('data', HOJE)) ]);
+    upsertFichas(fr); await aplicarPagamentosRows(pg, { substituirData: HOJE }); await garantirClientes();
+    derivar(); renderTudo();
+  } catch(e){ /* tenta de novo no próximo ciclo */ }
+  finally { ocupado = false; }
+}
+
+// ---------- entrada, primeiro acesso e saída ----------
+function uiSessao(){
+  $('tela-login').style.display = 'none';
+  const ps = $('tela-primeiro'); if(ps) ps.style.display = 'none';
+  $('btn-sair').style.display = ''; $('btn-senha').style.display = '';
+  document.querySelector('.role-switch').style.display = 'none';
+  $('select-cobrador').disabled = true;
+  const bo = $('btn-offline'); if(bo) bo.style.display = 'none';
+  if(eu.papel === 'admin') setRole('admin'); else { setRole('cobrador'); }
+  renderTudo(); atualizarBannerOffline();
+}
+let timers = null;
+function iniciarTimers(){
+  if(timers) return;
+  timers = setInterval(() => { sincronizar(); if(!fila.length) atualizarDia(); }, 25000);
+}
+async function iniciarSessao(){
+  const u = await db.auth.getUser();
+  const user = u.data && u.data.user;
+  if(u.error || !user) throw u.error || new Error('Sessão inválida. Entre de novo.');
+  const r = await db.from('perfis').select('id,nome,usuario,papel,ativo').eq('id', user.id).maybeSingle();
+  if(r.error) throw r.error;
+  if(!r.data){ await db.auth.signOut(); throw new Error('Este acesso ainda não foi ativado. Use "Primeiro acesso" ou procure o administrador.'); }
+  if(!r.data.ativo){ await db.auth.signOut(); throw new Error('Este usuário está desativado. Procure o administrador.'); }
+  eu = { id: r.data.id, papel: r.data.papel, nome: r.data.nome, usuario: r.data.usuario };
+  sessao = eu.papel === 'admin' ? { papel: 'admin' } : { papel: 'cobrador', id: eu.id };
+  lerFila(); HOJE = RC.hoje();
+  try { await recarregar({ todos: true }); }
+  catch(e){ eu = null; sessao = null; try { await db.auth.signOut(); } catch(_){} throw e; }
+  uiSessao(); iniciarTimers(); sincronizar();
+}
+entrar = async function(){
+  const chave = $('login-chave').value.trim().toLowerCase(), user = $('login-usuario').value.trim().toLowerCase(), senha = $('login-senha').value;
+  const erro = $('login-erro'), btn = document.querySelector('#tela-login button.primary');
+  if(!chave || !user || !senha){ erro.textContent = 'Preencha a chave da empresa, o usuário e a senha.'; return; }
+  if(btn) btn.disabled = true; erro.textContent = 'Entrando…'; erro.style.color = 'var(--ink-soft)';
+  try {
+    const r = await db.auth.signInWithPassword({ email: emailDe(user, chave), password: senha });
+    if(r.error) throw r.error;
+    $('login-senha').value = '';
+    await iniciarSessao();
+    erro.textContent = '';
+  } catch(e){ erro.style.color = 'var(--stamp-red)'; erro.textContent = msgErro(e); if(!eu){ try { await db.auth.signOut(); } catch(_){} } }
+  finally { if(btn) btn.disabled = false; }
+};
+sair = async function(){
+  if(fila.length && !confirm('Há ' + fila.length + ' registro(s) que ainda não foram enviados. Se sair agora eles podem ser perdidos. Sair mesmo assim?')) return;
+  try { await db.auth.signOut(); } catch(e){}
+  try { Object.keys(localStorage).filter(k => k.startsWith('rc_')).forEach(k => localStorage.removeItem(k)); } catch(e){}
+  location.reload();
+};
+function criarTelas(){
+  const card = document.querySelector('#tela-login .card-block');
+  const dica = card.querySelector('p:last-of-type'); if(dica) dica.remove();
+  $('login-chave').placeholder = 'Chave da empresa (ex.: minhaloja)';
+  const a = document.createElement('p'); a.style.cssText = 'font-size:.85rem;';
+  a.innerHTML = '<a href="#" id="link-primeiro">Primeiro acesso da empresa (tenho um código de convite)</a>';
+  card.appendChild(a);
+  const d = document.createElement('div'); d.id = 'tela-primeiro';
+  d.style.cssText = 'position:fixed;inset:0;z-index:101;background:var(--paper);display:none;align-items:center;justify-content:center;padding:16px;overflow:auto;';
+  d.innerHTML = `<div class="card-block" style="max-width:420px;width:100%;">
+    <h1 style="font-size:1.4rem;">Primeiro acesso da empresa</h1>
+    <p style="font-size:.85rem;color:var(--ink-soft);">Use o código de convite que você recebeu. Você será o administrador. A chave da empresa é o que seus cobradores digitam para entrar.</p>
+    <div class="vale-form" style="flex-direction:column;align-items:stretch;">
+      <input type="text" id="pa-codigo" placeholder="Código de convite" autocomplete="off">
+      <input type="text" id="pa-empresa" placeholder="Nome da empresa">
+      <input type="text" id="pa-chave" placeholder="Chave da empresa (letras minúsculas e números)" autocapitalize="none">
+      <input type="text" id="pa-nome" placeholder="Seu nome">
+      <input type="text" id="pa-usuario" placeholder="Seu usuário (ex.: admin)" autocapitalize="none">
+      <input type="password" id="pa-senha" placeholder="Senha (mínimo 6 caracteres)">
+      <button class="btn primary" id="pa-btn">Criar empresa e entrar</button>
+    </div>
+    <p id="pa-erro" style="font-size:.85rem;color:var(--stamp-red);min-height:1.2em;"></p>
+    <p style="font-size:.85rem;"><a href="#" id="pa-voltar">Voltar para o login</a></p></div>`;
+  document.body.appendChild(d);
+  $('link-primeiro').onclick = e => { e.preventDefault(); d.style.display = 'flex'; };
+  $('pa-voltar').onclick = e => { e.preventDefault(); d.style.display = 'none'; };
+  $('pa-btn').onclick = primeiroAcesso;
+  const bs = document.createElement('button'); bs.id = 'btn-senha'; bs.className = $('btn-sair').className; bs.style.cssText = $('btn-sair').style.cssText; bs.style.display = 'none';
+  bs.textContent = 'Minha senha'; bs.onclick = minhaSenha; $('btn-sair').insertAdjacentElement('beforebegin', bs);
+}
+async function primeiroAcesso(){
+  const v = id => $(id).value.trim(), erro = $('pa-erro'), btn = $('pa-btn');
+  const cod = v('pa-codigo'), emp = v('pa-empresa'), chave = v('pa-chave').toLowerCase(), nome = v('pa-nome'), user = v('pa-usuario').toLowerCase(), senha = $('pa-senha').value;
+  erro.style.color = 'var(--stamp-red)';
+  if(!cod || !emp || !nome){ erro.textContent = 'Preencha o código, o nome da empresa e o seu nome.'; return; }
+  if(!REGEX_ID.test(chave)){ erro.textContent = 'A chave deve ter de 3 a 30 letras minúsculas, números, ponto, hífen ou sublinhado (sem espaços).'; return; }
+  if(!REGEX_ID.test(user)){ erro.textContent = 'O usuário deve ter de 3 a 30 letras minúsculas, números, ponto, hífen ou sublinhado (sem espaços).'; return; }
+  if(senha.length < 6){ erro.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+  btn.disabled = true; erro.style.color = 'var(--ink-soft)'; erro.textContent = 'Criando…';
+  try {
+    const email = emailDe(user, chave);
+    const s = await db.auth.signUp({ email, password: senha });
+    if(s.error && /already|exists/i.test(s.error.message)){
+      const r2 = await db.auth.signInWithPassword({ email, password: senha });
+      if(r2.error) throw new Error('Essa chave e esse usuário já existem. Se a empresa já foi criada, entre pela tela de login.');
+    } else if(s.error) throw s.error;
+    else if(!s.data.session) throw new Error('O Supabase está pedindo confirmação de e-mail. Em Authentication → Providers → Email, desligue "Confirm email" e tente de novo.');
+    await rpc('ativar_convite', { p_codigo: cod, p_empresa_nome: emp, p_chave: chave, p_nome_admin: nome, p_usuario: user });
+    await iniciarSessao();
+    erro.textContent = '';
+  } catch(e){ erro.style.color = 'var(--stamp-red)'; erro.textContent = msgErro(e); }
+  finally { btn.disabled = false; }
+}
+function minhaSenha(){
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;';
+  d.innerHTML = `<div class="card-block" style="max-width:360px;width:100%;background:var(--paper);"><h3>Alterar minha senha</h3>
+    <div class="vale-form" style="flex-direction:column;align-items:stretch;"><input type="password" id="ms-nova" placeholder="Nova senha (mínimo 6 caracteres)"><input type="password" id="ms-conf" placeholder="Repita a nova senha">
+    <div style="display:flex;gap:8px;"><button class="btn primary" id="ms-ok">Salvar</button><button class="btn ghost" id="ms-x">Cancelar</button></div></div><p id="ms-erro" style="font-size:.85rem;color:var(--stamp-red);min-height:1.2em;"></p></div>`;
+  document.body.appendChild(d);
+  $('ms-x').onclick = () => d.remove();
+  $('ms-ok').onclick = async () => {
+    const a = $('ms-nova').value, b = $('ms-conf').value, er = $('ms-erro');
+    if(a.length < 6){ er.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+    if(a !== b){ er.textContent = 'As duas senhas não são iguais.'; return; }
+    const r = await db.auth.updateUser({ password: a });
+    if(r.error){ er.textContent = msgErro(r.error); return; }
+    d.remove(); aviso('Senha alterada.', true);
+  };
+}
+
+// ---------- ações do cobrador (guardam no aparelho e enviam assim que há internet) ----------
+const _cb = confirmarBaixa;
+confirmarBaixa = function(numero){
+  if(!eu || eu.papel !== 'cobrador') return _cb(numero);
+  const f = fichas.find(x => x.numero === numero); if(!f) return;
+  const valor = parseFloat($('valorpago-' + numero).value), forma = $('forma-' + numero).value, rest = f.valorTotal - f.valorPago;
+  if(valor > rest + 0.001){ $('baixa-erro-' + numero).textContent = 'O valor é maior que o restante da ficha (' + formatBRL(rest) + ').'; return; }
+  const n = f.pagamentos.length, dia = HOJE;
+  _cb(numero);
+  if(f.pagamentos.length > n){
+    const p = f.pagamentos[f.pagamentos.length - 1]; p.idc = uuid(); p.id = p.id || p.idc;
+    enfileirar({ tipo: 'baixa', fichaId: f.id, numero, valor, forma, proxima: f.quitada ? null : (f.proximaData || null), idc: p.idc, data: dia });
+  }
+};
+const _cr = confirmarRemarcacao;
+confirmarRemarcacao = function(numero){
+  if(!eu || eu.papel !== 'cobrador') return _cr(numero);
+  const f = fichas.find(x => x.numero === numero), antes = f.status, nova = ($('nova-data-' + numero) || {}).value, dia = HOJE;
+  _cr(numero);
+  if(antes !== 'remarcada' && f.status === 'remarcada') enfileirar({ tipo: 'remarcar', fichaId: f.id, numero, nova, data: dia });
+};
+const _er = enviarResultadoDia;
+enviarResultadoDia = function(){
+  if(!eu || eu.papel !== 'cobrador') return _er();
+  const dia = HOJE; _er();
+  enfileirar({ tipo: 'enviar', data: dia });
+};
+const _sp = salvarProximaData;
+salvarProximaData = function(numero){
+  if(!eu || eu.papel !== 'cobrador') return _sp(numero);
+  const f = fichas.find(x => x.numero === numero), d = ($('prox-' + numero) || {}).value;
+  _sp(numero);
+  if(d) enfileirar({ tipo: 'proxima', fichaId: f.id, numero, nova: d });
+};
+const _rcb = renderCobrador;
+renderCobrador = function(){
+  const sel = $('select-cobrador');
+  if(!sel || !cobradores.some(c => c.id === sel.value)){ ['lista-fichas', 'rodape-dia', 'envio-dia'].forEach(i => { const e = $(i); if(e) e.innerHTML = ''; }); return; }
+  _rcb();
+};
+
+// ---------- registro de alterações: o banco guarda; aqui só os avisos de WhatsApp ----------
+registrar = function(acao, detalhe){
+  if(eu && (acao === 'Recibo enviado' || acao === 'Lembrete enviado')) db.rpc('registrar_evento', { p_acao: acao, p_detalhe: desh(detalhe) }).then(() => {}, () => {});
+};
+
+// ---------- ações do administrador ----------
+const _lf = lancarFicha;
+lancarFicha = function(){
+  const g = id => ($(id) ? $(id).value.trim() : '');
+  const d = { nome: g('lancar-nome'), bairro: $('lancar-bairro').value, endereco: g('lancar-endereco'), referencia: g('lancar-referencia'), telefone: g('lancar-telefone'),
+    cpf: soDigitos(g('lancar-cpf')), merc: g('lancar-mercadoria') || 'Mercadoria', total: parseFloat($('lancar-total').value), parcela: parseFloat($('lancar-parcela').value),
+    data: $('lancar-vencimento').value || null, numero: parseInt(g('lancar-numero'), 10) || null };
+  const n = fichas.length; _lf();
+  if(fichas.length <= n) return;
+  const nova = fichas[fichas.length - 1], st = $('lancar-status');
+  executar(async () => {
+    const r = await rpc('lancar_ficha', { p_nome: d.nome, p_bairro: d.bairro, p_endereco: d.endereco, p_referencia: d.referencia, p_telefone: d.telefone, p_cpf: d.cpf || null,
+      p_mercadoria: d.merc, p_valor_total: d.total, p_parcela: d.parcela, p_data: d.data, p_numero: d.numero, p_cliente_id: UUID_RE.test(nova.clienteId || '') ? nova.clienteId : null });
+    nova._res = r; return r;
+  }, null, st).then(async r => {
+    if(r && r.id){ await recarregar({ fichas: [r.id] }); st.textContent = 'Ficha ' + numPad(r.numero) + ' lançada para ' + r.cobrador + '.'; st.style.color = 'var(--ledger-green)'; }
+  });
+};
+const _se = salvarEdicao;
+salvarEdicao = function(numero){
+  const f = fichas.find(x => x.numero === numero), g = id => ($(id) ? $(id).value.trim() : '');
+  const d = { endereco: g('ed-endereco'), ref: g('ed-ref'), tel: g('ed-tel'), cpf: soDigitos(g('ed-cpf')), merc: g('ed-merc'), mercNova: g('ed-merc-nova'),
+    add: parseFloat(g('ed-valor-add')) || 0, parcela: parseFloat(g('ed-parcela')), cob: g('ed-cobrador'), data: g('ed-data') };
+  const erro = $('ed-cpf-erro'); _se(numero);
+  if(erro && erro.textContent) return;
+  executar(() => rpc('editar_ficha', { p_ficha: f.id, p_endereco: d.endereco || null, p_referencia: d.ref, p_telefone: d.tel, p_cpf: d.cpf || null,
+    p_mercadoria: d.merc || null, p_mercadoria_nova: d.mercNova || null, p_valor_add: d.add, p_parcela: d.parcela > 0 ? d.parcela : null, p_cobrador: d.cob || null, p_data: d.data || null }),
+    { fichas: [f.id] }, $('ficha-detalhe'));
+};
+const _cf = cancelarFicha;
+cancelarFicha = function(numero){
+  const f = fichas.find(x => x.numero === numero), motivo = ($('ed-cancel-motivo') || {}).value || '', antes = f.cancelada;
+  _cf(numero);
+  if(!antes && f.cancelada) executar(() => rpc('cancelar_ficha', { p_ficha: f.id, p_motivo: motivo.trim() }), { fichas: [f.id] }, $('ficha-detalhe'));
+};
+const _rf = reabrirFicha;
+reabrirFicha = function(numero){
+  const f = fichas.find(x => x.numero === numero); _rf(numero);
+  executar(() => rpc('reabrir_ficha', { p_ficha: f.id }), { fichas: [f.id] }, $('ficha-detalhe'));
+};
+const _tph = trazerParaHoje;
+trazerParaHoje = function(numero){
+  const f = fichas.find(x => x.numero === numero); _tph(numero);
+  executar(() => rpc('trazer_para_hoje', { p_ficha: f.id }), { fichas: [f.id] });
+};
+const _sc = salvarCorrecao;
+salvarCorrecao = function(){
+  const c = correcaoAtual || {}, f = fichas.find(x => x.numero === c.numero), p = f && f.pagamentos[c.i];
+  if(!p) return _sc();
+  const v0 = p.valor, f0 = p.forma, motivo = ($('cor-motivo') || {}).value || '';
+  _sc();
+  if(p.valor !== v0 || p.forma !== f0) executar(() => rpc('corrigir_pagamento', { p_pagamento: p.id, p_valor: p.valor, p_forma: p.forma, p_motivo: motivo.trim() }), { fichas: [f.id] }).then(() => verHistorico(c.numero));
+};
+const _ep = excluirPagamento;
+excluirPagamento = function(){
+  const c = correcaoAtual || {}, f = fichas.find(x => x.numero === c.numero), p = f && f.pagamentos[c.i];
+  if(!p) return _ep();
+  const motivo = ($('cor-motivo') || {}).value || '', n = f.pagamentos.length;
+  _ep();
+  if(f.pagamentos.length < n) executar(() => rpc('excluir_pagamento', { p_pagamento: p.id, p_motivo: motivo.trim() }), { fichas: [f.id] }).then(() => verHistorico(c.numero));
+};
+const _vh = verHistorico;
+verHistorico = async function(numero){
+  const f = fichas.find(x => x.numero === numero);
+  if(f && f.id && !f._pgCompleto){
+    try { const rows = await lerTudo('pagamentos', PG_COLS, q => q.eq('ficha_id', f.id)); await aplicarPagamentosRows(rows, { substituirIds: [f.id] }); derivar(); }
+    catch(e){ aviso(msgErro(e)); }
+  }
+  _vh(numero);
+};
+const _tf = transferirFichas;
+transferirFichas = function(){
+  const de = $('tr-de').value, para = $('tr-para').value, st = $('tr-status');
+  const antes = fichas.filter(f => f.cobradorId === de).length; _tf();
+  if(fichas.filter(f => f.cobradorId === de).length >= antes) return;
+  executar(async () => { const n = await rpc('transferir_fichas', { p_de: de, p_para: para });
+    st.textContent = n + ' ficha(s) transferida(s) de ' + cobradorNome(de) + ' para ' + cobradorNome(para) + '.'; st.style.color = 'var(--ledger-green)'; },
+    { cobradores: [de, para] }, st);
+};
+const _ac = alternarAtivoCobrador;
+alternarAtivoCobrador = function(id){
+  const c = cobradores.find(x => x.id === id), antes = c.ativo !== false; _ac(id);
+  if((c.ativo !== false) !== antes) executar(() => rpc('ativar_cobrador', { p_id: id, p_ativo: c.ativo !== false }), null, $('cobrador-status'));
+};
+const _rv = registrarVale;
+registrarVale = function(){
+  const id = $('vale-cobrador').value, valor = parseFloat($('vale-valor').value), n = vales.length; _rv();
+  if(vales.length > n) executar(() => rpc('registrar_vale', { p_cobrador: id, p_valor: valor }));
+};
+const _ab = adicionarBairro;
+adicionarBairro = function(id){
+  const b = (($('novo-bairro-' + id) || {}).value || '').trim(); if(!b) return; _ab(id);
+  executar(() => rpc('definir_rota', { p_cobrador: id, p_bairro: b }));
+};
+const _cee = confirmarEntregaCobrador;
+confirmarEntregaCobrador = function(){
+  const id = cobradorInspecionadoId, entregue = parseFloat(($('valor-entregue-input') || {}).value) || 0, antes = confirmacoesAdmin[id];
+  _cee();
+  if(!antes && confirmacoesAdmin[id]) executar(() => rpc('conferir_dia', { p_cobrador: id, p_data: HOJE, p_entregue: entregue }), { cobradores: [id] });
+};
+calcularPrestacao = function(id){
+  const r = prestCache[id];
+  if(!r) return { desde: undefined, totalCobrado: 0, comissao: 0, valesPeriodo: 0, saldoAnterior: 0, saldoFinal: 0, qtdFichas: 0 };
+  return { desde: r.desde || undefined, totalCobrado: +r.total_cobrado, comissao: +r.comissao, valesPeriodo: +r.vales, saldoAnterior: +r.saldo_anterior, saldoFinal: +r.saldo_final, qtdFichas: +r.qtd_fichas };
+};
+abrirPrestacaoContas = async function(){
+  const id = cobradorInspecionadoId;
+  try { prestCache[id] = await rpc('calcular_prestacao', { p_cobrador: id }); prestacaoAberta = id; renderPrestacaoContas(); }
+  catch(e){ aviso(msgErro(e)); }
+};
+confirmarPrestacaoContas = async function(){
+  const id = cobradorInspecionadoId;
+  const ok = await executar(() => rpc('prestar_contas', { p_cobrador: id }));
+  if(ok){ prestacaoAberta = null; renderPrestacaoContas(); aviso('Prestação de contas registrada.', true); }
+};
+valorEsperadoDinheiro = id => n2(pagHoje.filter(p => p.cobradorId === id && p.forma === 'dinheiro').reduce((s, p) => s + p.valor, 0));
+valorEsperadoPix = id => n2(pagHoje.filter(p => p.cobradorId === id && p.forma === 'pix').reduce((s, p) => s + p.valor, 0));
+const _rm = renderMensal;
+renderMensal = function(){
+  const mes = HOJE.slice(0, 7), tbody = $('tabela-mensal'), pg = fichas.flatMap(f => f.pagamentos).filter(p => !p.inicial && p.data.startsWith(mes));
+  const totais = cobradores.map(c => { const l = pg.filter(p => p.cobradorId === c.id); return { c, total: n2(somaV(l)), qtd: l.length }; });
+  if(!totais.length){ tbody.innerHTML = ''; return; }
+  const geral = totais.reduce((s, t) => s + t.total, 0), melhor = totais.reduce((m, t) => t.total > m.total ? t : m, totais[0]);
+  tbody.innerHTML = totais.map(t => `<tr class="${t.c.id === melhor.c.id && geral ? 'best' : ''}"><td>${linkCobrador(t.c.id, t.c.nome)}${t.c.id === melhor.c.id && geral ? ' 🏆' : ''}</td>
+    <td class="num mono">${formatBRL(t.total)}</td><td class="num mono">${t.qtd}</td><td class="num mono">${geral ? ((t.total / geral) * 100).toFixed(1) : '0.0'}%</td></tr>`).join('');
+};
+const _rcobs = renderCobradores;
+renderCobradores = function(){
+  _rcobs();
+  document.querySelectorAll('#tabela-cobradores tr').forEach(tr => { if(tr.children[4]) tr.children[4].innerHTML = '<span style="font-size:.8rem;color:var(--ink-soft);">o cobrador troca em “Minha senha”</span>'; });
+};
+trocarSenha = function(){ const st = $('cobrador-status'); st.textContent = 'Cada cobrador altera a própria senha no botão “Minha senha”.'; st.style.color = 'var(--ink-soft)'; };
+const _cc = cadastrarCobrador;
+cadastrarCobrador = function(){
+  const nome = $('cobrador-nome').value.trim(), login = $('cobrador-login').value.trim().toLowerCase(), senha = $('cobrador-senha').value.trim(), per = $('cobrador-periodicidade').value, st = $('cobrador-status');
+  if(nome && login && senha){
+    if(!REGEX_ID.test(login)){ st.textContent = 'O usuário deve ter de 3 a 30 letras minúsculas, números, ponto, hífen ou sublinhado (sem espaços).'; st.style.color = 'var(--stamp-red)'; return; }
+    if(senha.length < 6){ st.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; st.style.color = 'var(--stamp-red)'; return; }
+  }
+  const n = cobradores.length; $('cobrador-login').value = login; _cc();
+  if(cobradores.length <= n) return;
+  executar(async () => {
+    const email = emailDe(login, EMPRESA.chave); let uid;
+    const s = await dbAux.auth.signUp({ email, password: senha });
+    if(s.error && /already|exists/i.test(s.error.message)){
+      const s2 = await dbAux.auth.signInWithPassword({ email, password: senha });
+      if(s2.error) throw new Error('Já existe um acesso com esse usuário. Escolha outro usuário.');
+      uid = s2.data.user.id;
+    } else if(s.error) throw s.error;
+    else if(!s.data.session) throw new Error('O Supabase está pedindo confirmação de e-mail. Desligue "Confirm email" em Authentication → Providers → Email.');
+    else uid = s.data.user.id;
+    const res = await rpc('cadastrar_cobrador_perfil', { p_id: uid, p_nome: nome, p_usuario: login, p_periodicidade: per });
+    st.textContent = 'Cobrador ' + nome + ' cadastrado.' + (res && res.extra ? ' Ele conta como cobrador extra (cobrado à parte).' : '') + ' Agora cadastre os bairros dele em "Rotas por bairro".'; st.style.color = 'var(--ledger-green)';
+  }, null, st);
+};
+confirmarImportacao = async function(){
+  const r = importacaoPendente; if(!r || !r.validas.length) return;
+  const box = $('import-resumo'); box.innerHTML = '<p>Importando… não feche esta tela.</p>';
+  ocupado = true;
+  try {
+    let ok = 0, novos = 0, erros = [];
+    for(let i = 0; i < r.validas.length; i += 500){
+      const lote = r.validas.slice(i, i + 500).map(v => ({ linha: v.linha, numero: v.numero, cliente: v.cliente, bairro: v.bairro, endereco: v.endereco, referencia: v.referencia, telefone: v.telefone,
+        cpf: v.cpf, mercadoria: v.mercadoria, valor_total: v.total, valor_pago: v.pago, parcela: v.parcela, data: v.data }));
+      const res = await rpc('importar_fichas', { p_linhas: lote });
+      ok += res.importadas; novos += res.clientes_novos; erros = erros.concat(res.erros || []);
+    }
+    importacaoPendente = null; $('import-arquivo').value = '';
+    box.innerHTML = `<p style="color:var(--ledger-green);font-weight:600;">${ok} ficha(s) importada(s), ${novos} cliente(s) novo(s).</p>`
+      + (erros.length ? `<p class="atraso">${erros.length} linha(s) não foram importadas:</p><ul style="font-size:.85rem;">` + erros.slice(0, 30).map(e => `<li>Linha ${h(e.linha)}: ${h(e.msg)}</li>`).join('') + '</ul>' : '');
+    await recarregar({ todos: true });
+  } catch(e){ box.innerHTML = '<p class="atraso">' + h(msgErro(e)) + '</p>'; try { await recarregar({ todos: true }); } catch(_){} }
+  finally { ocupado = false; }
+};
+restaurarBackup = function(){ const st = $('backup-status'); st.textContent = 'A restauração por arquivo não está disponível na versão online. Os dados ficam guardados no Supabase, que faz as cópias de segurança.'; st.style.color = 'var(--stamp-red)'; const a = $('backup-arquivo'); if(a) a.value = ''; };
+const _tav = toggleArquivoVisivel;
+toggleArquivoVisivel = async function(){
+  if(!arquivoVisivel){ try { aviso('Carregando fichas encerradas…', true); await carregarArquivadas(); } catch(e){ aviso(msgErro(e)); return; } }
+  _tav();
+};
+const _et = exportarTabela;
+exportarTabela = async function(tipo){
+  try {
+    aviso('Preparando a planilha…', true);
+    await carregarArquivadas();
+    if(tipo === 'pagamentos'){
+      const rows = await lerTudo('pagamentos', PG_COLS);
+      baixarArquivo('pagamentos.csv', csvTexto(['data', 'ficha', 'cliente', 'cobrador', 'forma', 'valor', 'observacao'], rows.map(r => {
+        const f = porId.get(r.ficha_id) || {};
+        return [dataBR(r.data), f.numero || '', clienteNome(f.clienteId), cobradorNome(r.cobrador_id), formaTxt(r.forma), numBR(+r.valor), r.inicial ? 'anterior ao sistema' : (r.corrigido ? 'corrigido' : '')];
+      })), 'text/csv;charset=utf-8');
+    } else _et(tipo);
+  } catch(e){ aviso(msgErro(e)); }
+};
+
+// ---------- início ----------
+criarTelas();
+(async function boot(){
+  if(!navigator.onLine && restaurarCache()){ uiSessao(); iniciarTimers(); return; }
+  try {
+    const s = await db.auth.getSession();
+    if(!s.data || !s.data.session) return;
+    try { await iniciarSessao(); }
+    catch(e){
+      if((isRede(e)) && restaurarCache()){ uiSessao(); iniciarTimers(); return; }
+      const er = $('login-erro'); if(er) er.textContent = msgErro(e);
+    }
+  } catch(e){ if(restaurarCache()){ uiSessao(); iniciarTimers(); } }
+})();
+if(db.auth.onAuthStateChange) db.auth.onAuthStateChange(ev => { if(ev === 'SIGNED_OUT' && eu && navigator.onLine && !fila.length){ /* sessão encerrada em outro lugar */ location.reload(); } });
+window.RC_DEBUG = { get eu(){ return eu; }, fila: () => fila, problemas: () => problemas, sincronizar, recarregar, atualizarDia };
+})();
+
+</script>
+<script>
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){ window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+</script>
+</body>
+</html>
