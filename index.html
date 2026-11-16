@@ -535,7 +535,10 @@
     <div class="resumo-dia">
       <div class="topo">
         <div><h2 id="rota-titulo">Rota</h2><div class="data" id="rota-data"></div></div>
-        <button class="btn pequeno" onclick="abrirOrganizador()"><svg class="ico sm"><use href="#i-ordem"/></svg> Organizar rota</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn pequeno" onclick="atualizarRota()"><svg class="ico sm"><use href="#i-relogio"/></svg> Atualizar</button>
+          <button class="btn pequeno" onclick="abrirOrganizador()"><svg class="ico sm"><use href="#i-ordem"/></svg> Organizar rota</button>
+        </div>
       </div>
       <div class="total" id="rd-total">R$ 0,00</div>
       <div class="linha-v" id="rd-linha"></div>
@@ -980,6 +983,8 @@ function populateCobradorSelect(){
 }
 
 let filtroRota = 'todas';
+// demonstração: só redesenha; a versão online busca as novidades no banco
+async function atualizarRota(){ renderCobrador(); toast('Rota atualizada.', true); }
 function filtrarRota(f){
   filtroRota = f;
   document.querySelectorAll('#filtros-rota button').forEach(b => b.classList.toggle('ativo', b.dataset.f === f));
@@ -3508,8 +3513,45 @@ function homeCobrador(){
 // atualizações automáticas da página inicial e do menu
 const _renderAdminV3 = renderAdmin;
 renderAdmin = function(){ _renderAdminV3(); populateBairroSelect(); depoisDeDesenhar(); };
+// o usuário está no meio de um preenchimento? (as atualizações automáticas esperam)
+function usuarioEditando(){
+  const a = document.activeElement;
+  if(a && a.closest && a.closest('main, .modal-fundo') && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.type !== 'search') return true;
+  if(document.querySelector('.modal-fundo')) return true;
+  if(document.querySelector('#lista-fichas .inline-form.show[id^="baixa-"], #lista-fichas .inline-form.show[id^="remarcar-"]')) return true;
+  const fd = document.getElementById('ficha-detalhe');
+  if(fd && fd.style.display !== 'none' && document.getElementById('ed-endereco')) return true;
+  const ve = document.getElementById('valor-entregue-input');
+  const pn = document.getElementById('detalhe-cobrador-panel');
+  if(ve && pn && pn.classList.contains('show') && ve.value !== ve.defaultValue) return true;
+  return false;
+}
+// guarda os formulários de baixa/remarcação abertos e o que já foi digitado, para não perder ao redesenhar a lista
+function capturarFormsRota(){
+  const lista = document.getElementById('lista-fichas');
+  if(!lista) return null;
+  const abertos = [...lista.querySelectorAll('.inline-form.show')].map(f => f.id).filter(id => /^(baixa|remarcar)-/.test(id));
+  const valores = {};
+  lista.querySelectorAll('.inline-form input, .inline-form select').forEach(el => {
+    if(!el.id) return;
+    const aberto = abertos.some(id => el.closest('#' + CSS.escape(id)));
+    if(aberto || el.value !== el.defaultValue) valores[el.id] = el.value;
+  });
+  const foco = document.activeElement && lista.contains(document.activeElement) ? document.activeElement.id : null;
+  return { abertos, valores, foco };
+}
+function restaurarFormsRota(e){
+  if(!e) return;
+  e.abertos.forEach(id => { const f = document.getElementById(id); if(f) f.classList.add('show'); });
+  Object.entries(e.valores).forEach(([id, v]) => { const el = document.getElementById(id); if(el) el.value = v; });
+  e.abertos.filter(id => id.startsWith('baixa-')).forEach(id => {
+    const n = id.slice(6);
+    if(document.getElementById(id) && typeof atualizarCampoProximaData === 'function') atualizarCampoProximaData(n);
+  });
+  if(e.foco){ const el = document.getElementById(e.foco); if(el) el.focus({ preventScroll: true }); }
+}
 const _renderCobradorV3 = renderCobrador;
-renderCobrador = function(){ _renderCobradorV3(); depoisDeDesenhar(); };
+renderCobrador = function(){ const e = capturarFormsRota(); _renderCobradorV3(); restaurarFormsRota(e); depoisDeDesenhar(); };
 function depoisDeDesenhar(){ montarMenu(); if(UI.pagina === 'home') renderHome(); }
 
 // ---------- início da interface ----------
@@ -3893,11 +3935,20 @@ atualizarBannerOffline = function(){
   b.innerHTML = t;
 };
 window.addEventListener('online', () => { atualizarBannerOffline(); sincronizar(); });
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && eu){ sincronizar(); if(!fila.length) atualizarDia(); }
+});
+atualizarRota = async function(){
+  if(!eu) return;
+  if(fila.length){ await sincronizar(); if(fila.length){ toast('Sem internet: a rota será atualizada quando a conexão voltar.'); return; } }
+  const ok = await executar(async () => true, { todos: true });
+  if(ok) toast('Rota atualizada.', true);
+};
 window.addEventListener('offline', () => atualizarBannerOffline());
 
 // ---------- atualização do dia (o administrador vê o resultado enviado pelos cobradores) ----------
 async function atualizarDia(){
-  if(!eu || ocupado || sincronizando || fila.length || !navigator.onLine) return;
+  if(!eu || ocupado || sincronizando || fila.length || !navigator.onLine || usuarioEditando()) return;
   ocupado = true;
   try {
     if(RC.hoje() !== HOJE){ HOJE = RC.hoje(); await recarregar({ todos: true }); return; }
@@ -3907,7 +3958,8 @@ async function atualizarDia(){
     aplicarFech(fech);
     const [fr, pg] = await Promise.all([ lerTudo('fichas', FICHA_COLS, q => q.eq('data_cobranca', HOJE)), lerTudo('pagamentos', PG_COLS, q => q.eq('data', HOJE)) ]);
     upsertFichas(fr); await aplicarPagamentosRows(pg, { substituirData: HOJE }); await garantirClientes();
-    derivar(); renderTudo();
+    derivar();
+    if(!usuarioEditando()) renderTudo();   // se começou a preencher algo durante a busca, redesenha na próxima ação
   } catch(e){ /* tenta de novo no próximo ciclo */ }
   finally { ocupado = false; }
 }
@@ -3926,7 +3978,9 @@ function uiSessao(){
 let timers = null;
 function iniciarTimers(){
   if(timers) return;
-  timers = setInterval(() => { sincronizar(); if(!fila.length) atualizarDia(); }, 25000);
+  // cobrador: o relógio só envia o que ficou guardado sem internet; a lista atualiza depois de cada envio,
+  // ao abrir/voltar para o app e no botão Atualizar. Administrador: continua atualizando sozinho.
+  timers = setInterval(() => { sincronizar(); if(!fila.length && eu && eu.papel === 'admin') atualizarDia(); }, 25000);
 }
 async function iniciarSessao(){
   const u = await db.auth.getUser();
