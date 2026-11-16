@@ -2,527 +2,559 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Rota Certa — Sistema de Cobrança</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper: #E8E0C9;
-    --paper-light: #F8F4E7;
-    --ink: #2A2118;
-    --ink-soft: #6B5F4C;
-    --stamp-red: #A63D2F;
-    --ledger-green: #33513C;
-    --ledger-green-dark: #22392A;
-    --gold: #A9761F;
-    --line: #C9BEA0;
-    --paid: #33513C;
-    --pending: #A9761F;
-    --late: #A63D2F;
+    --brand: #23714F;
+    --brand-dark: color-mix(in srgb, var(--brand) 78%, #000);
+    --brand-soft: color-mix(in srgb, var(--brand) 12%, #fff);
+    --brand-softer: color-mix(in srgb, var(--brand) 6%, #fff);
+    --bg: #F3F5F4;
+    --surface: #FFFFFF;
+    --ink: #17221D;
+    --ink-soft: #5B6A63;
+    --ink-muted: #8A9791;
+    --line: #E1E6E3;
+    --line-strong: #CBD3CF;
+    --ok: #1F7A4D;
+    --warn: #B7791F;
+    --bad: #C2412D;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 2px rgba(16,24,20,.05), 0 4px 16px rgba(16,24,20,.06);
+    --shadow-lg: 0 10px 40px rgba(16,24,20,.18);
+    --sidebar-w: 264px;
+    /* nomes antigos usados no código das telas */
+    --paper: var(--bg);
+    --paper-light: var(--surface);
+    --stamp-red: var(--bad);
+    --ledger-green: var(--brand);
+    --ledger-green-dark: var(--brand-dark);
+    --gold: var(--warn);
+    --paid: var(--ok);
+    --pending: var(--warn);
+    --late: var(--bad);
   }
-
   *{ box-sizing:border-box; }
-
+  html{ -webkit-text-size-adjust:100%; }
   body{
-    margin:0;
-    background: var(--paper);
-    background-image:
-      repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 32px);
-    color: var(--ink);
-    font-family:'IBM Plex Sans', sans-serif;
-    min-height:100vh;
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size:15px; line-height:1.45; min-height:100vh;
   }
+  h1,h2,h3,h4{ margin:0; font-weight:700; letter-spacing:-.01em; }
+  a{ color:var(--brand); }
+  .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; }
+  .ico{ width:20px; height:20px; flex-shrink:0; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .ico.sm{ width:16px; height:16px; }
+  .ico.lg{ width:26px; height:26px; }
 
-  h1,h2,h3,h4{
-    font-family:'Zilla Slab', serif;
-    margin:0;
-    font-weight:600;
+  /* ===== marca d'água ===== */
+  #marca-dagua{
+    position:fixed; inset:0; z-index:0; pointer-events:none; display:flex; align-items:center; justify-content:center; overflow:hidden;
   }
+  #marca-dagua span{
+    font-weight:800; font-size:min(17vw, 210px); letter-spacing:-.04em; white-space:nowrap;
+    color:var(--brand); opacity:.045; transform:rotate(-18deg); user-select:none;
+  }
+  #marca-dagua img{ max-width:min(60vw, 520px); max-height:60vh; opacity:.06; filter:grayscale(.2); }
 
-  .mono{
-    font-family:'IBM Plex Mono', monospace;
-    font-variant-numeric: tabular-nums;
+  /* ===== estrutura ===== */
+  .app{ position:relative; z-index:1; min-height:100vh; }
+  .sidebar{
+    position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w); z-index:60;
+    background:var(--surface); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; transition:transform .25s ease;
   }
+  .sb-brand{ display:flex; align-items:center; gap:12px; padding:18px 18px 14px; border-bottom:1px solid var(--line); min-height:72px; }
+  .sb-logo{
+    width:42px; height:42px; border-radius:12px; background:var(--brand); color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:1rem; flex-shrink:0; overflow:hidden;
+  }
+  .sb-logo img{ width:100%; height:100%; object-fit:contain; background:#fff; }
+  .sb-brand .t1{ font-weight:800; font-size:1.02rem; line-height:1.15; }
+  .sb-brand .t2{ font-size:.75rem; color:var(--ink-muted); }
+  .sb-nav{ flex:1; overflow-y:auto; padding:10px 10px 16px; }
+  .sb-grupo{ font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-muted); padding:14px 12px 6px; }
+  .sb-item{
+    display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; margin:1px 0; border:0; border-radius:10px;
+    background:transparent; color:var(--ink-soft); font:inherit; font-weight:600; font-size:.9rem; text-align:left; cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .sb-item:hover{ background:var(--brand-softer); color:var(--ink); }
+  .sb-item.ativo{ background:var(--brand-soft); color:var(--brand-dark); }
+  .sb-item.ativo .ico{ stroke:var(--brand); }
+  .sb-item .qtd{ margin-left:auto; background:var(--bad); color:#fff; border-radius:999px; font-size:.7rem; padding:1px 7px; font-weight:700; }
+  .sb-user{ border-top:1px solid var(--line); padding:12px 14px; display:flex; align-items:center; gap:10px; cursor:pointer; }
+  .sb-user:hover{ background:var(--brand-softer); }
+  .sb-user .nome{ font-weight:700; font-size:.88rem; line-height:1.2; }
+  .sb-user .papel{ font-size:.74rem; color:var(--ink-muted); }
 
-  /* ===== Header / role switcher ===== */
-  .app-header{
-    background: var(--ledger-green-dark);
-    color: var(--paper-light);
-    padding: 18px 24px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:12px;
-    border-bottom: 4px double var(--gold);
+  .conteudo{ margin-left:var(--sidebar-w); min-height:100vh; display:flex; flex-direction:column; }
+  .topbar{
+    position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:12px; padding:12px 28px; min-height:64px;
+    background:color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid transparent;
   }
-  .brand{
-    display:flex;
-    align-items:baseline;
-    gap:10px;
+  .topbar.rolou{ border-bottom-color:var(--line); }
+  .topbar h1{ font-size:1.25rem; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btn-icone{
+    width:42px; height:42px; border-radius:12px; border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
   }
-  .brand h1{ font-size:1.5rem; letter-spacing:0.3px; }
-  .brand span{
-    font-size:0.75rem;
-    color: var(--paper);
-    opacity:0.75;
-    font-family:'IBM Plex Mono', monospace;
-  }
-  .role-switch{
-    display:flex;
-    gap:0;
-    border:1px solid var(--paper);
-    border-radius: 3px;
-    overflow:hidden;
-  }
-  .role-switch button{
-    background:transparent;
-    color: var(--paper-light);
-    border:none;
-    padding:9px 18px;
-    font-family:'IBM Plex Sans', sans-serif;
-    font-weight:600;
-    font-size:0.85rem;
-    cursor:pointer;
-    transition: background 0.15s ease;
-  }
-  .role-switch button.active{
-    background: var(--gold);
-    color: var(--ledger-green-dark);
-  }
-
-  main{
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 28px 20px 60px;
-  }
-
-  .view{ display:none; }
+  .btn-icone:hover{ background:var(--brand-softer); }
+  #btn-menu{ display:none; }
+  #btn-inicio-top{ display:none; }
+  main{ width:100%; max-width:1180px; margin:0 auto; padding:8px 28px 80px; flex:1; }
+  .view{ display:none; animation:aparecer .22s ease; }
   .view.active{ display:block; }
+  @keyframes aparecer{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+  .veu{ position:fixed; inset:0; background:rgba(10,20,15,.42); z-index:55; display:none; }
+  body.menu-aberto .veu{ display:block; }
 
-  /* ===== Cobrador view ===== */
-  .cobrador-select{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-bottom: 22px;
-    font-size:0.9rem;
-    color: var(--ink-soft);
-  }
-  .cobrador-select select{
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size:0.9rem;
-    padding:6px 10px;
-    border:1px solid var(--line);
-    border-radius:3px;
-    background: var(--paper-light);
-    color: var(--ink);
-  }
+  /* barra de carregamento */
+  #carregando{ position:fixed; top:0; left:0; right:0; height:3px; z-index:500; overflow:hidden; display:none; }
+  #carregando::after{ content:''; position:absolute; top:0; bottom:0; width:40%; background:var(--brand); animation:carga 1s ease-in-out infinite; }
+  body.carregando #carregando{ display:block; }
+  @keyframes carga{ from{ left:-40%; } to{ left:100%; } }
 
-  .route-summary{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-end;
-    border-bottom: 2px solid var(--ink);
-    padding-bottom:14px;
-    margin-bottom:20px;
-    flex-wrap:wrap;
-    gap:10px;
+  /* ===== componentes ===== */
+  .card-block, .cartao{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px 22px; margin-bottom:20px; box-shadow:var(--shadow);
   }
-  .route-summary h2{ font-size:1.6rem; }
-  .route-summary .date{
-    font-family:'IBM Plex Mono', monospace;
-    color: var(--ink-soft);
-    font-size:0.85rem;
-  }
+  .card-block .card-block{ box-shadow:none; background:var(--brand-softer); }
+  .card-block h3, .cartao h3{ font-size:1.02rem; margin-bottom:12px; }
+  .section-title{ display:flex; justify-content:space-between; align-items:center; margin:6px 0 16px; flex-wrap:wrap; gap:10px; }
+  .section-title h2{ font-size:1.15rem; }
+  .sub{ font-size:.86rem; color:var(--ink-soft); margin:-8px 0 16px; }
 
-  .ficha-card{
-    background: var(--paper-light);
-    border:1px solid var(--line);
-    border-left: 5px solid var(--pending);
-    border-radius: 2px;
-    padding: 16px 18px;
-    margin-bottom: 14px;
-    position:relative;
+  .btn{
+    font:inherit; font-weight:700; font-size:.88rem; min-height:42px; padding:9px 18px; border-radius:var(--radius-sm);
+    border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; white-space:nowrap; transition:background .15s, border-color .15s, transform .08s, box-shadow .15s;
   }
-  .ficha-card.paga{ border-left-color: var(--paid); opacity:0.75; }
-  .ficha-card.remarcada{ border-left-color: var(--gold); }
+  .btn:active{ transform:scale(.97); }
+  .btn.primary{ background:var(--brand); border-color:var(--brand); color:#fff; box-shadow:0 2px 8px color-mix(in srgb, var(--brand) 30%, transparent); }
+  .btn.primary:hover{ background:var(--brand-dark); }
+  .btn.ghost:hover{ background:var(--brand-softer); border-color:var(--brand); }
+  .btn.perigo{ color:var(--bad); border-color:color-mix(in srgb, var(--bad) 40%, #fff); }
+  .btn.perigo:hover{ background:color-mix(in srgb, var(--bad) 8%, #fff); }
+  .btn.pequeno{ min-height:34px; padding:5px 12px; font-size:.8rem; }
+  .btn:disabled{ opacity:.45; cursor:default; transform:none; }
 
-  .ficha-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:12px;
+  input[type=text], input[type=number], input[type=password], input[type=date], input[type=tel], input[type=search], select, textarea{
+    font:inherit; font-size:.92rem; color:var(--ink); background:var(--surface);
+    border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:10px 12px; min-height:44px; outline:none;
+    transition:border-color .15s, box-shadow .15s;
   }
-  .ficha-num{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:0.75rem;
-    color: var(--ink-soft);
-    letter-spacing:0.5px;
-  }
-  .ficha-card h3{ font-size:1.1rem; margin-top:2px; }
-  .ficha-endereco{ font-size:0.85rem; color: var(--ink-soft); margin-top:2px; }
-  .ficha-valor{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:1.3rem;
-    font-weight:600;
-    color: var(--ledger-green);
-    white-space:nowrap;
-  }
+  input:focus, select:focus, textarea:focus{ border-color:var(--brand); box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); }
+  input[type=file]{ font:inherit; font-size:.85rem; }
+  input[type=checkbox]{ width:18px; height:18px; accent-color:var(--brand); }
+  label.campo{ display:flex; flex-direction:column; gap:5px; font-size:.78rem; font-weight:700; color:var(--ink-soft); }
+  label.campo input, label.campo select{ font-weight:400; }
+  .grade-form{ display:grid; grid-template-columns:repeat(12, 1fr); gap:14px; margin-bottom:14px; }
+  .c12{ grid-column:span 12; } .c8{ grid-column:span 8; } .c6{ grid-column:span 6; } .c4{ grid-column:span 4; } .c3{ grid-column:span 3; } .c2{ grid-column:span 2; }
 
-  .stamp{
-    position:absolute;
-    top:14px;
-    right:16px;
-    border:2px solid var(--paid);
-    color: var(--paid);
-    font-family:'IBM Plex Mono', monospace;
-    font-size:0.7rem;
-    font-weight:600;
-    padding:3px 10px;
-    border-radius:3px;
-    transform: rotate(-6deg);
-    letter-spacing:1px;
-  }
-
-  .ficha-actions{
-    display:flex;
-    gap:10px;
-    margin-top:14px;
-    flex-wrap:wrap;
-  }
-  button.btn{
-    font-family:'IBM Plex Sans', sans-serif;
-    font-weight:600;
-    font-size:0.85rem;
-    padding:8px 16px;
-    border-radius:3px;
-    border:1px solid var(--ink);
-    background: transparent;
-    color: var(--ink);
-    cursor:pointer;
-    transition: all 0.15s ease;
-  }
-  button.btn.primary{
-    background: var(--ledger-green);
-    border-color: var(--ledger-green);
-    color: var(--paper-light);
-  }
-  button.btn.primary:hover{ background: var(--ledger-green-dark); }
-  button.btn.ghost:hover{ background: var(--paper); }
-  button.btn:disabled{ opacity:0.4; cursor:default; }
-
-  .inline-form{
-    margin-top:12px;
-    padding-top:12px;
-    border-top:1px dashed var(--line);
-    display:none;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
+  .vale-form, .inline-form{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  .vale-form input, .vale-form select{ flex:1 1 170px; }
+  .inline-form{ display:none; margin:12px 0 0; padding-top:12px; border-top:1px dashed var(--line-strong); }
   .inline-form.show{ display:flex; }
-  .inline-form select, .inline-form input{
-    font-family:'IBM Plex Sans', sans-serif;
-    padding:6px 10px;
-    border:1px solid var(--line);
-    border-radius:3px;
-    font-size:0.85rem;
-  }
+  .acoes{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 14px; }
 
-  .day-footer{
-    margin-top: 26px;
-    padding: 18px 20px;
-    background: var(--ledger-green-dark);
-    color: var(--paper-light);
-    border-radius:3px;
-    display:flex;
-    gap:28px;
-    flex-wrap:wrap;
-  }
-  .day-footer .stat{ display:flex; flex-direction:column; gap:2px; }
-  .day-footer .stat .label{ font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; opacity:0.65; }
-  .day-footer .stat .value{ font-family:'IBM Plex Mono', monospace; font-size:1.3rem; font-weight:600; color: var(--gold); }
-
-  /* ===== Admin view ===== */
-  .admin-tabs{
-    display:flex;
-    gap:2px;
-    margin-bottom:22px;
-    border-bottom: 2px solid var(--ink);
-    flex-wrap:wrap;
-  }
-  .admin-tabs button{
-    background:none;
-    border:none;
-    padding:10px 16px;
-    font-family:'Zilla Slab', serif;
-    font-size:1rem;
-    font-weight:600;
-    color: var(--ink-soft);
-    cursor:pointer;
-    border-bottom: 3px solid transparent;
-    margin-bottom:-2px;
-  }
-  .admin-tabs button.active{
-    color: var(--ink);
-    border-bottom-color: var(--stamp-red);
-  }
-  .admin-panel{ display:none; }
-  .admin-panel.active{ display:block; }
-
-  table{
-    width:100%;
-    border-collapse:collapse;
-    background: var(--paper-light);
-    border:1px solid var(--line);
-  }
-  thead th{
-    text-align:left;
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size:0.72rem;
-    text-transform:uppercase;
-    letter-spacing:0.8px;
-    color: var(--ink-soft);
-    padding:10px 14px;
-    border-bottom:2px solid var(--ink);
-  }
-  tbody td{
-    padding:11px 14px;
-    border-bottom:1px solid var(--line);
-    font-size:0.9rem;
-  }
+  .tabela-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); margin-bottom:18px; }
+  .tabela-wrap table{ border:0; box-shadow:none; margin:0; border-radius:0; }
+  table{ width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+  thead th{ text-align:left; font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); padding:12px 14px; border-bottom:1px solid var(--line); background:var(--brand-softer); white-space:nowrap; font-weight:700; }
+  tbody td{ padding:12px 14px; border-bottom:1px solid var(--line); font-size:.9rem; vertical-align:middle; }
   tbody tr:last-child td{ border-bottom:none; }
-  td.num, th.num{ font-family:'IBM Plex Mono', monospace; text-align:right; }
+  tbody tr:hover td{ background:color-mix(in srgb, var(--brand) 3%, #fff); }
+  td.num, th.num{ font-family:'IBM Plex Mono', monospace; text-align:right; white-space:nowrap; }
+  .card-block .tabela-wrap, .card-block > table{ box-shadow:none; }
 
-  .badge{
-    display:inline-block;
-    padding:2px 9px;
-    border-radius:3px;
-    font-size:0.72rem;
-    font-weight:600;
-    font-family:'IBM Plex Mono', monospace;
-  }
-  .badge.ok{ background:rgba(51,81,60,0.14); color: var(--ledger-green); }
-  .badge.bad{ background:rgba(166,61,47,0.14); color: var(--stamp-red); }
-  .badge.wait{ background:rgba(169,118,31,0.16); color: var(--gold); }
-
-  .detalhe-cobrador{
-    background: var(--paper-light);
-    border:1px solid var(--line);
-    border-left:5px solid var(--gold);
-    border-radius:2px;
-    padding:16px 20px;
-    margin-top:16px;
-    display:none;
-  }
-  .detalhe-cobrador.show{ display:block; }
-  .detalhe-cobrador h3{ font-size:1.05rem; margin-bottom:10px; }
-  .detalhe-grid{
-    display:flex;
-    gap:28px;
-    flex-wrap:wrap;
-  }
-  .detalhe-grid .stat{ display:flex; flex-direction:column; gap:2px; }
-  .detalhe-grid .stat .label{ font-size:0.7rem; text-transform:uppercase; letter-spacing:0.8px; color:var(--ink-soft); }
-  .detalhe-grid .stat .value{ font-family:'IBM Plex Mono', monospace; font-size:1.2rem; font-weight:600; color:var(--ledger-green); }
-
-  .envio-box{
-    margin-top:16px;
-    padding:16px 18px;
-    border-radius:3px;
-    border:1px dashed var(--line);
-    background: var(--paper-light);
-  }
-  .envio-box p{ margin:0 0 10px; font-size:0.85rem; color:var(--ink-soft); }
-  .envio-box.enviado{ border:1px solid var(--ledger-green); background:rgba(51,81,60,0.08); }
-  .envio-box.enviado p{ color: var(--ledger-green); font-weight:600; }
+  .badge{ display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:999px; font-size:.74rem; font-weight:700; white-space:nowrap; }
+  .badge.ok{ background:color-mix(in srgb, var(--ok) 13%, #fff); color:var(--ok); }
+  .badge.bad{ background:color-mix(in srgb, var(--bad) 12%, #fff); color:var(--bad); }
+  .badge.wait{ background:color-mix(in srgb, var(--warn) 15%, #fff); color:#8A5A12; }
+  .badge.neutro{ background:#EEF1EF; color:var(--ink-soft); }
+  .chip{ display:inline-flex; align-items:center; gap:6px; padding:4px 10px; margin:3px; border:1px solid var(--line-strong); border-radius:999px; font-size:.82rem; background:var(--surface); }
+  .chip-bairro{ padding:3px 4px 3px 12px; }
+  .chip-bairro button{ border:0; background:transparent; width:28px; height:28px; border-radius:999px; cursor:pointer; color:var(--ink-soft); display:inline-flex; align-items:center; justify-content:center; }
+  .chip-bairro button:hover{ background:var(--brand-soft); color:var(--brand-dark); }
+  .chip-bairro button.rm:hover{ background:color-mix(in srgb, var(--bad) 12%, #fff); color:var(--bad); }
+  .atraso{ color:var(--bad); font-weight:700; }
+  .link-cob{ color:inherit; font-weight:600; text-decoration:underline dotted; text-underline-offset:3px; cursor:pointer; }
+  .link-cob:hover{ color:var(--brand); }
+  .saldo-pos{ color:var(--ok); font-weight:700; }
+  .saldo-neg{ color:var(--bad); font-weight:700; }
+  .best td{ background:color-mix(in srgb, var(--warn) 9%, #fff); }
 
   .avatar-wrap{ position:relative; display:inline-flex; align-items:center; gap:10px; }
   .avatar{
-    width:32px; height:32px; border-radius:50%;
-    background: var(--ledger-green-dark); color: var(--paper-light);
-    display:flex; align-items:center; justify-content:center;
-    font-family:'IBM Plex Mono', monospace; font-size:0.78rem; font-weight:600;
-    flex-shrink:0;
+    width:36px; height:36px; border-radius:50%; background:var(--brand); color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:.78rem; font-weight:800; flex-shrink:0; overflow:hidden; background-size:cover; background-position:center;
   }
-  .notif-dot{
-    position:absolute; top:-3px; left:22px;
-    width:14px; height:14px; border-radius:50%;
-    background: var(--stamp-red);
-    border:2px solid var(--paper-light);
+  .avatar.grande{ width:96px; height:96px; font-size:1.8rem; }
+  .notif-dot{ position:absolute; top:-2px; left:26px; width:14px; height:14px; border-radius:50%; background:var(--bad); border:2px solid #fff; animation:pulsar 1.6s infinite; }
+  @keyframes pulsar{ 0%,100%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--bad) 50%, transparent); } 50%{ box-shadow:0 0 0 6px transparent; } }
+
+  .detalhe-cobrador{ display:none; margin-top:4px; }
+  .detalhe-cobrador.show{ display:block; animation:aparecer .2s ease; }
+  .detalhe-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
+  .detalhe-grid .stat, .stat-box{ background:var(--brand-softer); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
+  .detalhe-grid .stat .label, .stat-box .label{ font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); font-weight:700; }
+  .detalhe-grid .stat .value, .stat-box .value{ font-family:'IBM Plex Mono', monospace; font-size:1.25rem; font-weight:600; color:var(--ink); }
+  .conf-valores{ margin-top:16px; padding-top:16px; border-top:1px dashed var(--line-strong); }
+  .conf-valores .linha{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 0; font-size:.9rem; }
+  .conf-valores input[type=number]{ width:150px; text-align:right; font-family:'IBM Plex Mono', monospace; }
+  .diferenca-alerta, .diferenca-ok{ margin-top:10px; padding:11px 14px; border-radius:10px; font-size:.86rem; font-weight:600; }
+  .diferenca-alerta{ background:color-mix(in srgb, var(--bad) 10%, #fff); color:var(--bad); }
+  .diferenca-ok{ background:color-mix(in srgb, var(--ok) 10%, #fff); color:var(--ok); }
+  .envio-box{ margin-top:18px; padding:18px 20px; border-radius:var(--radius); border:1px dashed var(--line-strong); background:var(--surface); }
+  .envio-box p{ margin:0 0 12px; font-size:.9rem; color:var(--ink-soft); }
+  .envio-box.enviado{ border:1px solid var(--ok); background:color-mix(in srgb, var(--ok) 8%, #fff); }
+  .envio-box.enviado p{ color:var(--ok); font-weight:700; margin:0; }
+
+  /* ===== página inicial ===== */
+  .saudacao{ display:flex; align-items:center; gap:16px; margin:6px 0 20px; flex-wrap:wrap; }
+  .saudacao h2{ font-size:1.6rem; }
+  .saudacao p{ margin:2px 0 0; color:var(--ink-soft); font-size:.92rem; }
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:14px; margin-bottom:24px; }
+  .kpi{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; }
+  .kpi .rot{ display:flex; align-items:center; gap:8px; font-size:.78rem; font-weight:700; color:var(--ink-soft); }
+  .kpi .rot .ico{ width:18px; height:18px; color:var(--brand); }
+  .kpi .val{ font-family:'IBM Plex Mono', monospace; font-size:1.5rem; font-weight:600; letter-spacing:-.02em; }
+  .kpi .det{ font-size:.78rem; color:var(--ink-muted); }
+  .kpi.destaque{ background:var(--brand); border-color:var(--brand); color:#fff; }
+  .kpi.destaque .rot, .kpi.destaque .det, .kpi.destaque .rot .ico{ color:color-mix(in srgb, #fff 82%, var(--brand)); }
+  .kpi.alerta .val{ color:var(--bad); }
+  .titulo-sec{ font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-muted); margin:6px 0 12px; }
+  .blocos{ display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px; margin-bottom:28px; }
+  .bloco{
+    position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:16px; min-height:118px; text-align:left;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); cursor:pointer; font:inherit; color:var(--ink);
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s;
+  }
+  .bloco:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(16,24,20,.1); border-color:color-mix(in srgb, var(--brand) 35%, var(--line)); }
+  .bloco .bi{ width:42px; height:42px; border-radius:12px; background:var(--brand-soft); color:var(--brand-dark); display:flex; align-items:center; justify-content:center; }
+  .bloco b{ font-size:.95rem; }
+  .bloco span{ font-size:.78rem; color:var(--ink-soft); line-height:1.35; }
+  .bloco .qtd{ position:absolute; top:12px; right:12px; background:var(--bad); color:#fff; border-radius:999px; font-size:.72rem; font-weight:800; padding:2px 8px; }
+  .graficos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:16px; margin-bottom:24px; }
+  .grafico h3{ font-size:.98rem; margin-bottom:2px; }
+  .grafico .gsub{ font-size:.78rem; color:var(--ink-muted); margin-bottom:10px; }
+  .grafico svg{ display:block; width:100%; overflow:visible; }
+  .grafico .barra{ fill:var(--brand); transition:opacity .15s; }
+  .grafico .barra.hoje{ fill:var(--brand-dark); }
+  .grafico svg:hover .barra{ opacity:.55; }
+  .grafico svg .alvo:hover + .barra, .grafico svg .barra:hover{ opacity:1; }
+  .grafico .eixo{ font-size:11px; fill:var(--ink-muted); font-family:'Plus Jakarta Sans', sans-serif; }
+  .grafico .rot-barra{ font-size:11.5px; fill:var(--ink); font-family:'Plus Jakarta Sans', sans-serif; font-weight:600; }
+  .grafico .val-barra{ font-size:11.5px; fill:var(--ink-soft); font-family:'IBM Plex Mono', monospace; }
+  .grafico .grade{ stroke:var(--line); stroke-width:1; }
+  .grafico .vazio{ padding:30px 0; text-align:center; color:var(--ink-muted); font-size:.88rem; }
+  .dica{ position:fixed; z-index:400; pointer-events:none; background:var(--ink); color:#fff; padding:7px 10px; border-radius:8px; font-size:.8rem; box-shadow:var(--shadow-lg); display:none; white-space:nowrap; }
+  .dica b{ font-family:'IBM Plex Mono', monospace; }
+
+  /* ===== cobrador ===== */
+  .cobrador-select{ display:flex; align-items:center; gap:10px; margin-bottom:14px; font-size:.88rem; color:var(--ink-soft); flex-wrap:wrap; }
+  body.real .cobrador-select{ display:none; }
+  .resumo-dia{
+    background:linear-gradient(135deg, var(--brand), var(--brand-dark)); color:#fff; border-radius:18px; padding:20px 22px; margin-bottom:16px;
+    box-shadow:0 8px 28px color-mix(in srgb, var(--brand) 35%, transparent);
+  }
+  .resumo-dia .topo{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .resumo-dia h2{ font-size:1.3rem; }
+  .resumo-dia .data{ font-size:.85rem; opacity:.8; margin-top:2px; }
+  .resumo-dia .total{ font-family:'IBM Plex Mono', monospace; font-size:2rem; font-weight:600; letter-spacing:-.02em; margin-top:12px; }
+  .resumo-dia .linha-v{ display:flex; gap:22px; flex-wrap:wrap; font-size:.85rem; margin-top:6px; opacity:.92; }
+  .resumo-dia .linha-v b{ font-family:'IBM Plex Mono', monospace; }
+  .progresso{ height:8px; background:rgba(255,255,255,.25); border-radius:99px; overflow:hidden; margin-top:14px; }
+  .progresso div{ height:100%; background:#fff; border-radius:99px; transition:width .4s ease; }
+  .resumo-dia .prog-txt{ font-size:.8rem; margin-top:6px; opacity:.85; }
+  .resumo-dia .btn{ background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.35); color:#fff; }
+  .resumo-dia .btn:hover{ background:rgba(255,255,255,.26); }
+  .barra-lista{ display:flex; gap:10px; align-items:center; margin:4px 0 14px; flex-wrap:wrap; }
+  .barra-lista input{ flex:1 1 220px; }
+  .filtros{ display:flex; gap:6px; flex-wrap:wrap; }
+  .filtros button{ border:1px solid var(--line-strong); background:var(--surface); border-radius:999px; padding:7px 14px; font:inherit; font-size:.82rem; font-weight:700; color:var(--ink-soft); cursor:pointer; }
+  .filtros button.ativo{ background:var(--ink); border-color:var(--ink); color:#fff; }
+
+  .ficha-card{
+    position:relative; background:var(--surface); border:1px solid var(--line); border-left:5px solid var(--warn);
+    border-radius:var(--radius); padding:16px 18px; margin-bottom:12px; box-shadow:var(--shadow); animation:aparecer .2s ease;
+  }
+  .ficha-card.paga{ border-left-color:var(--ok); }
+  .ficha-card.paga .ficha-top{ opacity:.75; }
+  .ficha-card.remarcada{ border-left-color:var(--ink-muted); }
+  .ficha-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .ficha-num{ font-family:'IBM Plex Mono', monospace; font-size:.74rem; color:var(--ink-muted); letter-spacing:.03em; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .pos{ display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:22px; padding:0 6px; border-radius:7px; background:var(--brand-soft); color:var(--brand-dark); font-weight:700; font-size:.74rem; }
+  .ficha-card h3{ font-size:1.08rem; margin-top:4px; }
+  .ficha-endereco{ font-size:.86rem; color:var(--ink-soft); margin-top:3px; }
+  .ficha-valor{ font-family:'IBM Plex Mono', monospace; font-size:1.3rem; font-weight:600; color:var(--ink); white-space:nowrap; text-align:right; }
+  .stamp{
+    display:inline-flex; align-items:center; gap:6px; margin-top:10px; border-radius:999px; padding:4px 12px; font-size:.74rem; font-weight:800; letter-spacing:.03em;
+    background:color-mix(in srgb, var(--ok) 12%, #fff); color:var(--ok);
+  }
+  .stamp.cinza{ background:#EEF1EF; color:var(--ink-soft); }
+  .atalhos{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .atalho{
+    display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; border:1px solid var(--line-strong);
+    font-size:.8rem; font-weight:700; color:var(--ink-soft); text-decoration:none; background:var(--surface);
+  }
+  .atalho:hover{ border-color:var(--brand); color:var(--brand-dark); background:var(--brand-softer); }
+  .atalho.off{ opacity:.4; pointer-events:none; }
+  .ficha-actions{ display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .ficha-actions .btn{ flex:1 1 140px; }
+  .day-footer{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; margin-top:18px; }
+  .day-footer .stat{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; display:flex; flex-direction:column; gap:3px; box-shadow:var(--shadow); }
+  .day-footer .stat .label{ font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); font-weight:700; }
+  .day-footer .stat .value{ font-family:'IBM Plex Mono', monospace; font-size:1.25rem; font-weight:600; }
+
+  /* ===== organizar rota ===== */
+  .org-lista{ list-style:none; margin:0; padding:0; }
+  .org-item{
+    display:flex; align-items:center; gap:10px; padding:10px 10px; margin-bottom:8px; background:var(--surface); border:1px solid var(--line);
+    border-radius:12px; touch-action:pan-y; user-select:none; -webkit-user-select:none;
+  }
+  .org-item.arrastando{ box-shadow:var(--shadow-lg); border-color:var(--brand); position:relative; z-index:5; background:var(--brand-softer); }
+  .org-item .alca{ width:38px; height:44px; display:flex; align-items:center; justify-content:center; color:var(--ink-muted); cursor:grab; touch-action:none; border-radius:8px; flex-shrink:0; }
+  .org-item .alca:active{ cursor:grabbing; background:var(--brand-soft); }
+  .org-item .num{ font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--brand-dark); min-width:30px; text-align:center; }
+  .org-item .txt{ flex:1; min-width:0; }
+  .org-item .txt b{ display:block; font-size:.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .org-item .txt span{ display:block; font-size:.78rem; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .org-item .setas{ display:flex; gap:4px; }
+  .org-item .setas button{ width:38px; height:38px; border-radius:9px; border:1px solid var(--line-strong); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
+  .org-item .setas button:hover{ border-color:var(--brand); color:var(--brand); }
+  .org-item .ir{ width:64px; min-height:38px; padding:6px 8px; text-align:center; }
+
+  /* ===== janelas ===== */
+  .modal-fundo{ position:fixed; inset:0; z-index:300; background:rgba(10,20,15,.45); display:flex; align-items:center; justify-content:center; padding:16px; animation:fundo .18s ease; }
+  @keyframes fundo{ from{ opacity:0; } to{ opacity:1; } }
+  .modal{ background:var(--surface); border-radius:18px; width:100%; max-width:440px; max-height:92vh; display:flex; flex-direction:column; box-shadow:var(--shadow-lg); animation:subir .22s ease; }
+  .modal.largo{ max-width:760px; }
+  @keyframes subir{ from{ transform:translateY(14px); opacity:0; } to{ transform:none; opacity:1; } }
+  .modal-cab{ padding:18px 20px 10px; display:flex; align-items:flex-start; gap:12px; }
+  .modal-cab h3{ font-size:1.12rem; flex:1; }
+  .modal-corpo{ padding:6px 20px 14px; overflow-y:auto; }
+  .modal-rodape{ padding:12px 20px 18px; display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; border-top:1px solid var(--line); }
+  .modal-corpo p{ margin:0 0 12px; font-size:.9rem; color:var(--ink-soft); }
+  .modal-corpo label.campo{ margin-bottom:12px; }
+  .erro-txt{ font-size:.85rem; color:var(--bad); min-height:1.2em; margin:4px 0 0; }
+
+  /* ===== toast ===== */
+  #rc-toast{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:600; max-width:min(92vw, 520px);
+    padding:12px 18px; border-radius:12px; font-size:.9rem; font-weight:600; color:#fff; box-shadow:var(--shadow-lg); display:none; animation:subir .2s ease;
   }
 
-  .conf-valores{
-    margin-top:16px;
-    padding-top:16px;
-    border-top:1px dashed var(--line);
-  }
-  .conf-valores .linha{
-    display:flex; justify-content:space-between; align-items:center;
-    padding:8px 0; font-size:0.88rem;
-  }
-  .conf-valores input[type=number]{
-    font-family:'IBM Plex Mono', monospace;
-    padding:6px 10px; border:1px solid var(--line); border-radius:3px;
-    width:130px; text-align:right;
-  }
-  .diferenca-alerta{
-    margin-top:10px; padding:10px 14px; border-radius:3px;
-    background: rgba(166,61,47,0.12); color: var(--stamp-red);
-    font-size:0.85rem; font-weight:600;
-  }
-  .diferenca-ok{
-    margin-top:10px; padding:10px 14px; border-radius:3px;
-    background: rgba(51,81,60,0.12); color: var(--ledger-green);
-    font-size:0.85rem; font-weight:600;
-  }
+  /* ===== login ===== */
+  .tela-cheia{ position:fixed; inset:0; z-index:100; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:16px; overflow:auto; }
+  .login-card{ width:100%; max-width:400px; background:var(--surface); border-radius:20px; padding:28px 26px 22px; box-shadow:var(--shadow-lg); position:relative; z-index:1; }
+  .login-logo{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+  .login-logo .sb-logo{ width:50px; height:50px; font-size:1.15rem; }
+  .login-logo h1{ font-size:1.45rem; }
+  .login-logo p{ margin:0; font-size:.8rem; color:var(--ink-muted); }
+  .login-card .vale-form{ flex-direction:column; align-items:stretch; }
+  .login-card .vale-form input{ flex:none; }
 
-  .section-title{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:14px;
-    flex-wrap:wrap;
-    gap:10px;
-  }
-  .section-title h2{ font-size:1.3rem; }
+  /* ===== perfil / empresa ===== */
+  .perfil-topo{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:18px; }
+  .cores{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .cor-op{ width:34px; height:34px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1px var(--line-strong); cursor:pointer; }
+  .cor-op.sel{ box-shadow:0 0 0 2px var(--ink); }
+  input[type=color]{ width:44px; height:38px; border:1px solid var(--line-strong); border-radius:10px; padding:2px; background:#fff; cursor:pointer; }
+  .logo-prev{ width:120px; height:120px; border-radius:16px; border:1px dashed var(--line-strong); display:flex; align-items:center; justify-content:center; background:#fff; overflow:hidden; color:var(--ink-muted); font-size:.8rem; text-align:center; }
+  .logo-prev img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .linha-check{ display:flex; align-items:center; gap:10px; font-size:.9rem; margin:10px 0; }
 
-  .card-block{
-    background: var(--paper-light);
-    border:1px solid var(--line);
-    border-radius:3px;
-    padding:18px 20px;
-    margin-bottom:24px;
-  }
+  footer.note{ max-width:1180px; margin:0 auto 30px; padding:0 28px; font-size:.78rem; color:var(--ink-muted); position:relative; z-index:1; }
+  body.real footer.note{ display:none; }
+  body.real #role-switch{ display:none; }
+  .legado{ display:none !important; }
 
-  .vale-form{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-    margin-bottom:16px;
-    padding-bottom:16px;
-    border-bottom:1px dashed var(--line);
+  /* ===== celular ===== */
+  @media (max-width: 960px){
+    .sidebar{ transform:translateX(-100%); box-shadow:none; }
+    body.menu-aberto .sidebar{ transform:none; box-shadow:var(--shadow-lg); }
+    .conteudo{ margin-left:0; }
+    #btn-menu{ display:inline-flex; }
+    body.fora-inicio #btn-inicio-top{ display:inline-flex; }
+    .topbar{ padding:10px 14px; min-height:60px; }
+    .topbar h1{ font-size:1.08rem; }
+    main{ padding:6px 14px 90px; }
+    .c8, .c6, .c4, .c3{ grid-column:span 12; }
+    .c2{ grid-column:span 6; }
   }
-  .vale-form select, .vale-form input{
-    padding:7px 10px;
-    border:1px solid var(--line);
-    border-radius:3px;
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size:0.85rem;
+  @media (max-width: 560px){
+    body{ font-size:14.5px; }
+    .card-block, .cartao{ padding:16px; }
+    .ficha-top{ flex-direction:column; gap:6px; }
+    .ficha-valor{ text-align:left; }
+    thead th, tbody td{ padding:10px; font-size:.82rem; }
+    .blocos{ grid-template-columns:repeat(2, 1fr); gap:10px; }
+    .bloco{ min-height:104px; padding:13px; }
+    .bloco span{ display:none; }
+    .kpis{ grid-template-columns:repeat(2, 1fr); gap:10px; }
+    .kpi{ padding:13px 14px; }
+    .kpi .val{ font-size:1.18rem; }
+    .saudacao h2{ font-size:1.3rem; }
+    .graficos{ grid-template-columns:1fr; }
+    .org-item{ flex-wrap:wrap; row-gap:6px; }
+    .org-item .txt{ flex:1 1 calc(100% - 90px); }
+    .org-item .ir{ margin-left:84px; width:70px; }
+    .org-item .setas{ margin-left:auto; }
+    .role-switch button{ padding:6px 10px; font-size:.74rem; }
   }
-
-  .saldo-pos{ color: var(--ledger-green); font-weight:600; }
-  .saldo-neg{ color: var(--stamp-red); font-weight:600; }
-
-  .best{
-    background: rgba(169,118,31,0.14);
+  @media print{
+    .sidebar, .topbar, .acoes, footer.note, #marca-dagua, button, .veu{ display:none !important; }
+    .conteudo{ margin:0; }
+    .admin-panel:not(.active){ display:none !important; }
+    .card-block, .tabela-wrap, table{ box-shadow:none; }
   }
-
-  footer.note{
-    max-width:1000px;
-    margin: 0 auto 40px;
-    padding: 0 20px;
-    font-size:0.78rem;
-    color: var(--ink-soft);
-    line-height:1.5;
-  }
-
-  @media (max-width: 640px){
-    .ficha-top{ flex-direction:column; }
-    .ficha-valor{ font-size:1.1rem; }
-    thead th, tbody td{ padding:8px; font-size:0.8rem; }
-  }
-.chip{display:inline-block;padding:2px 9px;margin:2px;border:1px solid var(--ink-soft);border-radius:10px;font-size:.8rem}
-  .acoes{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-  .atraso{color:var(--stamp-red);font-weight:600}
-  .link-cob{color:inherit;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
-  .link-cob:hover{color:var(--ledger-green)}
-  @media print{.role-switch,.admin-tabs,.acoes,footer.note,#view-cobrador,button{display:none!important}.admin-panel:not(.active){display:none!important}}
+  .admin-panel{ display:none; }
+  .admin-panel.active{ display:block; animation:aparecer .22s ease; }
 </style>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#33513C">
+<meta name="theme-color" content="#23714F">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Rota Certa">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-casa" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-conferir" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-ficha-mais" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></symbol>
+  <symbol id="i-pessoas" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.2 2.5 3.5 5.2"/></symbol>
+  <symbol id="i-mapa" viewBox="0 0 24 24"><path d="M9 4 3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></symbol>
+  <symbol id="i-pino" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-carteira" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 6V4.5A1.5 1.5 0 0 1 8.5 3H17"/><circle cx="16.5" cy="15" r="1.2"/></symbol>
+  <symbol id="i-grafico" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><rect x="7" y="11" width="3" height="6" rx=".5"/><rect x="12" y="7" width="3" height="10" rx=".5"/><rect x="17" y="13" width="3" height="4" rx=".5"/></symbol>
+  <symbol id="i-arquivo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></symbol>
+  <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-ficha" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M10.3 4 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/><path d="M12 9v4.5M12 17h.01"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h15M4 15h15M10 3 8 21M16 3l-2 18"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></symbol>
+  <symbol id="i-empresa" viewBox="0 0 24 24"><path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16"/><path d="M15 10h4a1 1 0 0 1 1 1v10M3 21h18M8 8h3M8 12h3M8 16h3"/></symbol>
+  <symbol id="i-usuario" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 4-6.5 8-6.5s7.2 2.5 8 6.5"/></symbol>
+  <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="i-sair" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l4-4-4-4M14 12H4"/></symbol>
+  <symbol id="i-rota" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/></symbol>
+  <symbol id="i-ordem" viewBox="0 0 24 24"><path d="M7 4v16M3.5 7.5 7 4l3.5 3.5M17 20V4M13.5 16.5 17 20l3.5-3.5"/></symbol>
+  <symbol id="i-alca" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.3"/><circle cx="15" cy="6" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="9" cy="18" r="1.3"/><circle cx="15" cy="18" r="1.3"/></symbol>
+  <symbol id="i-cima" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+  <symbol id="i-baixo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-telefone" viewBox="0 0 24 24"><path d="M5 4h3.5l1.5 4.5-2 1.5a11 11 0 0 0 6 6l1.5-2 4.5 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="i-mensagem" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.8 7L4 20l1-4.2A8 8 0 1 1 20 12z"/></symbol>
+  <symbol id="i-lapis" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-dinheiro" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></symbol>
+  <symbol id="i-pix" viewBox="0 0 24 24"><path d="m12 3 3.4 3.4a2.5 2.5 0 0 0 1.8.7H18l3 3-3 3h-.8a2.5 2.5 0 0 0-1.8.7L12 21l-3.4-3.4a2.5 2.5 0 0 0-1.8-.7H6l-3-3 3-3h.8a2.5 2.5 0 0 0 1.8-.7z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-olho" viewBox="0 0 24 24"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/></symbol>
+</svg>
+<div id="carregando"></div>
+<div id="marca-dagua"><span>Rota Certa</span></div>
 
-<div id="tela-login" style="position:fixed;inset:0;z-index:100;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:16px;">
-  <div class="card-block" style="max-width:380px;width:100%;">
-    <h1 style="font-size:1.6rem;">Rota Certa</h1>
-    <p style="font-size:.85rem;color:var(--ink-soft);">Entre com a chave de acesso da sua empresa, seu usuário e sua senha.</p>
-    <div class="vale-form" style="flex-direction:column;align-items:stretch;">
-      <input type="text" id="login-chave" placeholder="Chave de acesso da empresa">
-      <input type="text" id="login-usuario" placeholder="Usuário">
-      <input type="password" id="login-senha" placeholder="Senha" onkeydown="if(event.key==='Enter')entrar()">
+<div id="tela-login" class="tela-cheia">
+  <div class="login-card card-block">
+    <div class="login-logo">
+      <div class="sb-logo" id="login-logo">RC</div>
+      <div><h1 id="login-titulo">Rota Certa</h1><p>Sistema de cobrança porta a porta</p></div>
+    </div>
+    <p style="font-size:.88rem;color:var(--ink-soft);margin:0 0 14px;">Entre com a chave da sua empresa, seu usuário e sua senha.</p>
+    <div class="vale-form">
+      <input type="text" id="login-chave" placeholder="Chave de acesso da empresa" autocapitalize="none" autocomplete="organization">
+      <input type="text" id="login-usuario" placeholder="Usuário" autocapitalize="none" autocomplete="username">
+      <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()">
       <button class="btn primary" onclick="entrar()">Entrar</button>
     </div>
-    <p id="login-erro" style="font-size:.85rem;color:var(--stamp-red);min-height:1.2em;"></p>
-    <p style="font-size:.75rem;color:var(--ink-soft);">Dados do protótipo — chave ROTA-2026 · administrador: admin / admin123 · cobrador: marcos.andrade / 1234</p>
+    <p id="login-erro" style="font-size:.86rem;color:var(--stamp-red);min-height:1.2em;margin:0 0 6px;"></p>
+    <p style="font-size:.76rem;color:var(--ink-soft);">Dados do protótipo — chave ROTA-2026 · administrador: admin / admin123 · cobrador: marcos.andrade / 1234</p>
   </div>
 </div>
 
-<div class="app-header">
-  <div class="brand">
-    <h1>Rota Certa</h1>
-    <span>sistema de cobrança porta a porta</span>
-  </div>
-  <div class="role-switch">
-    <button id="btn-role-cobrador" class="active" onclick="setRole('cobrador')">Cobrador</button>
-    <button id="btn-role-admin" onclick="setRole('admin')">Administrador</button>
-  </div>
-  <button class="btn ghost" id="btn-sair" onclick="sair()" style="display:none;color:var(--paper);border-color:var(--paper);">Sair</button>
-</div>
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo" id="sb-logo">RC</div>
+      <div style="min-width:0;"><div class="t1" id="sb-empresa">Rota Certa</div><div class="t2">Rota Certa · cobrança</div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+    <div class="sb-user" id="sb-user" onclick="irPara('perfil')" title="Meu perfil">
+      <div class="avatar" id="sb-avatar">?</div>
+      <div style="min-width:0;"><div class="nome" id="sb-nome">—</div><div class="papel" id="sb-papel"></div></div>
+    </div>
+  </aside>
+  <div class="veu" onclick="fecharMenu()"></div>
+
+  <div class="conteudo">
+    <header class="topbar" id="topbar">
+      <button class="btn-icone" id="btn-menu" onclick="abrirMenu()" aria-label="Abrir menu"><svg class="ico"><use href="#i-menu"/></svg></button>
+      <button class="btn-icone" id="btn-inicio-top" onclick="irPara('home')" aria-label="Página inicial"><svg class="ico"><use href="#i-casa"/></svg></button>
+      <h1 id="titulo-pagina">Início</h1>
+      <div class="role-switch filtros" id="role-switch">
+        <button id="btn-role-cobrador" onclick="setRole('cobrador')">Ver como cobrador</button>
+        <button id="btn-role-admin" class="ativo" onclick="setRole('admin')">Ver como administrador</button>
+      </div>
+      <button class="btn ghost legado" id="btn-sair" onclick="sair()">Sair</button>
+    </header>
 
 <main>
 
-  <!-- ===================== VISÃO DO COBRADOR ===================== -->
-  <section id="view-cobrador" class="view active">
+  <!-- ===================== PÁGINA INICIAL ===================== -->
+  <section id="view-home" class="view active"></section>
 
+  <!-- ===================== PERFIL ===================== -->
+  <section id="view-perfil" class="view"></section>
+
+  <!-- ===================== MINHA EMPRESA ===================== -->
+  <section id="view-empresa" class="view"></section>
+
+  <!-- ===================== VISÃO DO COBRADOR ===================== -->
+  <section id="view-cobrador" class="view">
     <div class="cobrador-select">
-      Logado como
+      Vendo a rota de
       <select id="select-cobrador" onchange="renderCobrador()"></select>
     </div>
-
-    <div id="barra-conexao" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0;">
-      <span id="banner-offline" style="font-size:.85rem;"></span>
-      <button class="btn ghost" id="btn-offline" onclick="alternarOffline()">Simular sem internet</button>
+    <div id="barra-conexao" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;">
+      <span id="banner-offline" style="font-size:.86rem;"></span>
+      <button class="btn ghost pequeno" id="btn-offline" onclick="alternarOffline()">Simular sem internet</button>
     </div>
-
-    <div class="route-summary">
-      <div>
-        <h2 id="rota-titulo">Rota</h2>
-        <div class="date" id="rota-data"></div>
+    <div class="resumo-dia">
+      <div class="topo">
+        <div><h2 id="rota-titulo">Rota</h2><div class="data" id="rota-data"></div></div>
+        <button class="btn pequeno" onclick="abrirOrganizador()"><svg class="ico sm"><use href="#i-ordem"/></svg> Organizar rota</button>
+      </div>
+      <div class="total" id="rd-total">R$ 0,00</div>
+      <div class="linha-v" id="rd-linha"></div>
+      <div class="progresso"><div id="rd-prog" style="width:0%"></div></div>
+      <div class="prog-txt" id="rd-prog-txt"></div>
+    </div>
+    <div class="barra-lista">
+      <input type="search" id="busca-rota" placeholder="Buscar por cliente, rua ou nº da ficha" oninput="renderCobrador()">
+      <div class="filtros" id="filtros-rota">
+        <button class="ativo" data-f="todas" onclick="filtrarRota('todas')">Todas</button>
+        <button data-f="cobrar" onclick="filtrarRota('cobrar')">A cobrar</button>
+        <button data-f="feitas" onclick="filtrarRota('feitas')">Feitas</button>
       </div>
     </div>
-
     <div id="lista-fichas"></div>
-
     <div class="day-footer" id="rodape-dia"></div>
     <div class="envio-box" id="envio-dia"></div>
   </section>
-
-  <!-- ===================== VISÃO DO ADMINISTRADOR ===================== -->
   <section id="view-admin" class="view">
-
-    <div class="admin-tabs">
-      <button class="active" onclick="setAdminTab('conferencia')">Conferência diária</button>
-      <button onclick="setAdminTab('lancar')">Lançar ficha</button>
-      <button onclick="setAdminTab('cobradores')">Cobradores</button>
-      <button onclick="setAdminTab('rotas')">Rotas por bairro</button>
-      <button onclick="setAdminTab('vales')">Vales</button>
-      <button onclick="setAdminTab('mensal')">Relatório mensal</button>
-      <button onclick="setAdminTab('arquivo')">Fichas encerradas</button>
-      <button onclick="setAdminTab('historico')">Cobrança por período</button>
-      <button onclick="setAdminTab('fichas')">Histórico de fichas</button>
-      <button onclick="setAdminTab('atrasadas')">Atrasadas</button>
-      <button onclick="setAdminTab('numeracao')">Numeração</button>
-      <button onclick="setAdminTab('registro')">Registro de alterações</button>
-      <button onclick="setAdminTab('dados')">Importar e backup</button>
-    </div>
 
     <!-- Conferência diária -->
     <div id="admin-conferencia" class="admin-panel active">
@@ -545,7 +577,7 @@
         <tbody id="tabela-conferencia"></tbody>
       </table>
 
-      <div class="detalhe-cobrador" id="detalhe-cobrador-panel">
+      <div class="detalhe-cobrador card-block" id="detalhe-cobrador-panel">
         <h3 id="detalhe-cobrador-nome"></h3>
         <div class="detalhe-grid">
           <div class="stat"><span class="label">Fichas pendentes hoje</span><span class="value" id="detalhe-pendentes-hoje"></span></div>
@@ -566,76 +598,75 @@
 
     <!-- Lançar ficha -->
     <div id="admin-lancar" class="admin-panel">
-      <div class="section-title"><h2>Lançar nova ficha</h2></div>
       <div class="card-block">
-        <div class="vale-form">
-          <input type="text" id="lancar-nome" placeholder="Nome do cliente" oninput="buscarClienteExistente()">
-          <select id="lancar-bairro" onchange="buscarClienteExistente()">
-            <option value="">Bairro</option>
-          </select>
+        <h3>Cliente</h3>
+        <div class="grade-form">
+          <label class="campo c6">Nome do cliente<input type="text" id="lancar-nome" oninput="buscarClienteExistente()" autocomplete="off"></label>
+          <label class="campo c3">Telefone / WhatsApp<input type="tel" id="lancar-telefone" placeholder="(91) 99999-0000"></label>
+          <label class="campo c3">CPF (opcional)<input type="text" id="lancar-cpf" maxlength="14" inputmode="numeric" autocomplete="off" oninput="this.value=mascaraCPF(this.value);buscarClienteExistente()"></label>
         </div>
-        <div class="vale-form"><input type="number" id="lancar-numero" placeholder="Nº da ficha (vazio = automático)" min="1" style="min-width:240px;"><input type="text" id="lancar-telefone" placeholder="Telefone / WhatsApp do cliente (com DDD)" style="min-width:240px;"><input type="text" id="lancar-cpf" placeholder="CPF do cliente (opcional)" maxlength="14" inputmode="numeric" autocomplete="off" oninput="this.value=mascaraCPF(this.value);buscarClienteExistente()" style="min-width:200px;"></div>
-        <p id="cliente-encontrado" style="font-size:0.85rem; color:var(--ledger-green); font-weight:600; display:none;"></p>
-        <p id="rota-destino" style="font-size:0.85rem; color:var(--ink-soft);"></p>
-        <div class="vale-form">
-          <input type="text" id="lancar-endereco" placeholder="Endereço" style="flex:1; min-width:220px;">
+        <p id="cliente-encontrado" style="font-size:0.86rem; color:var(--ledger-green); font-weight:600; display:none; background:var(--brand-softer); padding:10px 12px; border-radius:10px;"></p>
+        <div class="grade-form">
+          <label class="campo c6">Endereço (rua)<input type="text" id="lancar-endereco" placeholder="Rua, travessa, avenida…"></label>
+          <label class="campo c2">Nº da casa<input type="text" id="lancar-casa" placeholder="Ex.: 120" maxlength="20"></label>
+          <label class="campo c4">Bairro<input type="text" id="lancar-bairro" list="lista-bairros" oninput="buscarClienteExistente()" autocomplete="off" placeholder="Escolha ou digite"><datalist id="lista-bairros"></datalist></label>
+          <label class="campo c12">Referência do endereço<input type="text" id="lancar-referencia" placeholder="Ex.: perto da padaria, portão azul"></label>
         </div>
-        <div class="vale-form">
-          <input type="text" id="lancar-referencia" placeholder="Referência (ex: perto da padaria, portão azul)" style="flex:1; min-width:220px;">
+        <h3 style="margin-top:6px;">Compra</h3>
+        <div class="grade-form">
+          <label class="campo c4">Mercadoria<input type="text" id="lancar-mercadoria" placeholder="Ex.: jogo de panelas"></label>
+          <label class="campo c2">Valor total (R$)<input type="number" id="lancar-total" min="0" step="0.01" inputmode="decimal"></label>
+          <label class="campo c2">Parcela (R$)<input type="number" id="lancar-parcela" min="0" step="0.01" inputmode="decimal"></label>
+          <label class="campo c2">1ª cobrança<input type="date" id="lancar-vencimento"></label>
+          <label class="campo c2">Nº da ficha<input type="number" id="lancar-numero" placeholder="Automático" min="1"></label>
+          <label class="campo c6">Cobrador<select id="lancar-cobrador" onchange="buscarClienteExistente()"><option value="">Automático (pelo bairro)</option></select></label>
         </div>
-        <div class="vale-form">
-          <input type="text" id="lancar-mercadoria" placeholder="Mercadoria">
-          <input type="number" id="lancar-total" placeholder="Valor total (R$)" min="0" step="10">
-          <input type="number" id="lancar-parcela" placeholder="Valor da parcela (R$)" min="0" step="5">
-          <input type="date" id="lancar-vencimento" value="${HOJE}">
-        </div>
-        <button class="btn primary" onclick="lancarFicha()">Lançar ficha</button>
-        <p id="lancar-status" style="font-size:0.85rem; color:var(--ink-soft); margin-top:10px;"></p>
+        <p id="rota-destino" style="font-size:0.86rem; color:var(--ink-soft);"></p>
+        <button class="btn primary" onclick="lancarFicha()"><svg class="ico sm"><use href="#i-mais"/></svg> Lançar ficha</button>
+        <p id="lancar-status" style="font-size:0.88rem; color:var(--ink-soft); margin-top:10px;"></p>
       </div>
     </div>
 
-    <!-- Rotas por bairro -->
     <!-- Cobradores -->
     <div id="admin-cobradores" class="admin-panel">
-      <div class="section-title"><h2>Cobradores</h2></div>
-      <p style="font-size:.85rem;">Chave de acesso da empresa: <b class="mono" id="chave-empresa"></b> — o cobrador entra no app com essa chave, o login e a senha criados aqui. Cada empresa que usa o sistema tem a sua própria chave.</p>
+      <div class="section-title"><h2>Cobradores e fichas de hoje</h2></div>
+      <table>
+        <thead><tr><th>Cobrador</th><th>Hoje</th><th class="num">Carteira</th><th>Bairros da rota</th><th>Prestação</th><th>Situação</th><th></th></tr></thead>
+        <tbody id="tabela-cobradores"></tbody>
+      </table>
+      <div id="cob-fichas-dia"></div>
       <div class="card-block">
+        <h3>Cadastrar cobrador</h3>
+        <p class="sub" style="margin:0 0 12px;">Chave de acesso da empresa: <b class="mono" id="chave-empresa"></b>. O cobrador entra no app com essa chave, o usuário e a senha criados aqui.</p>
         <div class="vale-form">
           <input type="text" id="cobrador-nome" placeholder="Nome completo">
-          <input type="text" id="cobrador-login" placeholder="Login de acesso">
-          <input type="text" id="cobrador-senha" placeholder="Senha">
+          <input type="text" id="cobrador-login" placeholder="Usuário de acesso" autocapitalize="none">
+          <input type="text" id="cobrador-senha" placeholder="Senha (mín. 6)">
           <select id="cobrador-periodicidade">
             <option value="semanal">Presta contas por semana</option>
             <option value="mensal">Presta contas por mês</option>
           </select>
           <button class="btn primary" onclick="cadastrarCobrador()">Cadastrar cobrador</button>
         </div>
-        <p id="cobrador-status" style="font-size:0.85rem; color:var(--ink-soft);"></p>
-        <table>
-          <thead><tr><th>Nome</th><th>Login</th><th>Periodicidade</th><th>Bairros da rota</th><th>Trocar senha</th><th>Situação</th></tr></thead>
-          <tbody id="tabela-cobradores"></tbody>
-        </table>
-        <div class="card-block" style="margin-top:16px;">
-          <h3>Transferir fichas de um cobrador para outro</h3>
-          <div class="vale-form">
-            <select id="tr-de" onchange="atualizarContagemTransferencia()"></select>
-            <span>→</span>
-            <select id="tr-para"></select>
-            <button class="btn primary" onclick="transferirFichas()">Transferir fichas ativas</button>
-          </div>
-          <p id="tr-contagem" style="font-size:.85rem;color:var(--ink-soft);"></p>
-          <p id="tr-status" style="font-size:.85rem;"></p>
+        <p id="cobrador-status" style="font-size:0.88rem; color:var(--ink-soft); margin:0;"></p>
+      </div>
+      <div class="card-block">
+        <h3>Transferir fichas de um cobrador para outro</h3>
+        <div class="vale-form">
+          <select id="tr-de" onchange="atualizarContagemTransferencia()"></select>
+          <span>→</span>
+          <select id="tr-para"></select>
+          <button class="btn primary" onclick="transferirFichas()">Transferir fichas ativas</button>
         </div>
+        <p id="tr-contagem" style="font-size:.86rem;color:var(--ink-soft);margin:0;"></p>
+        <p id="tr-status" style="font-size:.86rem;margin:6px 0 0;"></p>
       </div>
     </div>
 
     <!-- Rotas por bairro -->
     <div id="admin-rotas" class="admin-panel">
-      <div class="section-title"><h2>Rotas por bairro</h2></div>
-      <table>
-        <thead><tr><th>Cobrador</th><th>Bairros da rota</th><th>Adicionar bairro</th></tr></thead>
-        <tbody id="tabela-rotas"></tbody>
-      </table>
+      <p class="sub" style="margin:0 0 16px;">Cada bairro pertence à rota de um cobrador: ao lançar uma ficha desse bairro, ela vai direto para ele. Use <b>✎</b> para renomear o bairro ou passar para outro cobrador, e <b>×</b> para tirar da rota.</p>
+      <div id="rotas-lista"></div>
     </div>
 
     <!-- Fichas encerradas -->
@@ -761,7 +792,7 @@
       <div class="section-title"><h2>Importar fichas e backup</h2></div>
       <div class="card-block">
         <h3>Importar fichas das cadernetas (planilha)</h3>
-        <p style="font-size:.85rem;">Monte uma planilha com as colunas: numero, cliente, bairro, endereco, referencia, telefone, cpf, mercadoria, valor_total, valor_pago, parcela, proxima_cobranca. São obrigatórias só numero, cliente, bairro, valor_total e parcela. O cpf é opcional e, se vier preenchido, precisa ser válido. Salve como CSV. O bairro precisa estar na rota de um cobrador, e assim cada ficha já vai para o cobrador certo.</p>
+        <p style="font-size:.85rem;">Monte uma planilha com as colunas: numero, cliente, bairro, endereco, numero_casa, referencia, telefone, cpf, mercadoria, valor_total, valor_pago, parcela, proxima_cobranca. São obrigatórias só numero, cliente, bairro, valor_total e parcela. O cpf é opcional e, se vier preenchido, precisa ser válido. Salve como CSV. O bairro precisa estar na rota de um cobrador, e assim cada ficha já vai para o cobrador certo.</p>
         <div class="acoes">
           <button class="btn ghost" onclick="baixarModeloImportacao()">Baixar planilha modelo</button>
           <input type="file" id="import-arquivo" accept=".csv,.txt" onchange="lerImportacao()">
@@ -823,9 +854,11 @@
   </section>
 
 </main>
+  </div>
+</div>
 
 <footer class="note">
-  Protótipo navegável com dados simulados em memória, apenas para demonstrar as telas e o fluxo do sistema — não há banco de dados real nem persistência entre sessões. Ao evoluir para produção, cada tela aqui corresponde a uma consulta/gravação num banco de dados de verdade (clientes, fichas, cobradores, vales e fechamentos).
+  Modo demonstração: dados simulados em memória, só para mostrar as telas e o fluxo do sistema. Com o Supabase configurado, este aviso some e tudo fica salvo no banco.
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
@@ -857,16 +890,17 @@ let cobradores = [
 ];
 
 const clientes = [
-  { id: 'cl1', nome: 'Dona Marlene', endereco: 'Rua das Acácias, 120', bairro: 'Centro' },
-  { id: 'cl2', nome: 'Seu Raimundo', endereco: 'Av. Beira Rio, 45', bairro: 'São Brás' },
-  { id: 'cl3', nome: 'Cláudia Nunes', endereco: 'Trav. São José, 88', bairro: 'Centro' },
-  { id: 'cl4', nome: 'Antônio Melo', endereco: 'Rua 7 de Setembro, 210', bairro: 'Bairro Novo' },
-  { id: 'cl5', nome: 'Fátima Souza', endereco: 'Rua das Palmeiras, 33', bairro: 'Marco' },
-  { id: 'cl6', nome: 'Edivaldo Costa', endereco: 'Rua do Comércio, 5', bairro: 'Zona Sul' },
+  { id: 'cl1', nome: 'Dona Marlene', endereco: 'Rua das Acácias', numeroCasa: '120', bairro: 'Centro', telefone: '91988887777', referencia: 'portão azul' },
+  { id: 'cl2', nome: 'Seu Raimundo', endereco: 'Av. Beira Rio', numeroCasa: '45', bairro: 'São Brás', telefone: '91977776666' },
+  { id: 'cl3', nome: 'Cláudia Nunes', endereco: 'Trav. São José', numeroCasa: '88', bairro: 'Centro' },
+  { id: 'cl4', nome: 'Antônio Melo', endereco: 'Rua 7 de Setembro', numeroCasa: '210', bairro: 'Bairro Novo', telefone: '91966665555' },
+  { id: 'cl5', nome: 'Fátima Souza', endereco: 'Rua das Palmeiras', numeroCasa: '33', bairro: 'Marco' },
+  { id: 'cl6', nome: 'Edivaldo Costa', endereco: 'Rua do Comércio', numeroCasa: '5', bairro: 'Zona Sul' },
 ];
 
 function cobradorPorBairro(bairro){
-  return cobradores.find(c => c.ativo !== false && c.bairros.includes(bairro))?.id || null;
+  const n = normalizaTxt(bairro);
+  return cobradores.find(c => c.ativo !== false && c.bairros.some(b => normalizaTxt(b) === n))?.id || null;
 }
 
 // fichas: numero, clienteId, cobradorId, mercadoria, valorTotal, valorPago, parcela, vencimento, status, formaPagamento
@@ -920,84 +954,99 @@ function formatBRL(v){
   return v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
 }
 function clienteNome(id){ return clientes.find(c => c.id===id)?.nome || '—'; }
-function clienteEndereco(id){ return clientes.find(c => c.id===id)?.endereco || ''; }
+function enderecoCompleto(c){
+  c = c || {};
+  if(c.endereco) return c.endereco + (c.numeroCasa ? ', ' + c.numeroCasa : '');
+  return c.numeroCasa ? 'Nº ' + c.numeroCasa : '';
+}
+function clienteEndereco(id){ return enderecoCompleto(clientes.find(c => c.id===id)); }
 function clienteReferencia(id){ return clientes.find(c => c.id===id)?.referencia || ''; }
 function cobradorNome(id){ return cobradores.find(c => c.id===id)?.nome || '—'; }
 
 // ============================================================
 // Navegação entre papéis
 // ============================================================
-function setRole(role){
-  document.getElementById('view-cobrador').classList.toggle('active', role==='cobrador');
-  document.getElementById('view-admin').classList.toggle('active', role==='admin');
-  document.getElementById('btn-role-cobrador').classList.toggle('active', role==='cobrador');
-  document.getElementById('btn-role-admin').classList.toggle('active', role==='admin');
-  if(role==='admin') renderAdmin();
-}
-
-function setAdminTab(tab){
-  document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('admin-'+tab).classList.add('active');
-}
+function setRole(role){ /* trocado no script da interface */ }
+function setAdminTab(tab){ irPara(tab); }
 
 // ============================================================
 // VISÃO DO COBRADOR
 // ============================================================
 function populateCobradorSelect(){
   const sel = document.getElementById('select-cobrador');
-  sel.innerHTML = cobradoresAtivos().map(c => `<option value="${c.id}">${c.nome} — ${c.bairros.join(', ')}</option>`).join('');
+  const atual = sel.value;
+  sel.innerHTML = cobradoresAtivos().map(c => `<option value="${c.id}">${h(c.nome)}${c.bairros.length ? ' — ' + h(c.bairros.join(', ')) : ''}</option>`).join('');
+  if(cobradoresAtivos().some(c => c.id === atual)) sel.value = atual;
 }
 
+let filtroRota = 'todas';
+function filtrarRota(f){
+  filtroRota = f;
+  document.querySelectorAll('#filtros-rota button').forEach(b => b.classList.toggle('ativo', b.dataset.f === f));
+  renderCobrador();
+}
+// ordem da rota: posição escolhida pelo cobrador; sem posição vai para o fim, pelo nº da ficha
+function ordenarPorRota(lista){
+  return lista.slice().sort((a, b) => {
+    const oa = (a.ordem == null) ? 1e12 : a.ordem, ob = (b.ordem == null) ? 1e12 : b.ordem;
+    if(oa !== ob) return oa - ob;
+    return String(a.numero).localeCompare(String(b.numero));
+  });
+}
+function fichasDoDia(cobradorId){
+  return ordenarPorRota(fichas.filter(f => f.cobradorId === cobradorId && f.vencimento === HOJE && !f.cancelada));
+}
 function renderCobrador(){
   const cobradorId = document.getElementById('select-cobrador').value;
-  const cobrador = cobradores.find(c=>c.id===cobradorId);
-  document.getElementById('rota-titulo').textContent = cobrador.bairros.join(', ');
-  document.getElementById('rota-data').textContent = 'Cobranças de hoje · ' + formatDataExtenso(HOJE);
-
-  const doDia = fichas.filter(f => f.cobradorId===cobradorId && f.vencimento===HOJE && !f.cancelada);
-  const enviado = enviosDia[cobradorId] === true;
+  const cobrador = cobradores.find(c => c.id === cobradorId);
   const lista = document.getElementById('lista-fichas');
-  lista.innerHTML = doDia.map(f => renderFichaCard(f, enviado)).join('') ||
-    '<p style="color:var(--ink-soft)">Nenhuma ficha atribuída para hoje.</p>';
+  if(!cobrador){ lista.innerHTML = ''; return; }
+  document.getElementById('rota-titulo').textContent = sessao && sessao.papel === 'cobrador' ? 'Minha rota de hoje' : 'Rota de ' + cobrador.nome;
+  document.getElementById('rota-data').textContent = maiuscula(formatDataExtenso(HOJE)) + (cobrador.bairros.length ? ' · ' + cobrador.bairros.join(', ') : '');
 
-  // rodapé do dia
-  const pagas = doDia.filter(f=>f.status==='paga');
-  const pendentes = doDia.filter(f=>f.status==='pendente');
-  const totalDia = pagas.reduce((s,f)=>s+(f.valorRecebidoHoje ?? f.parcela),0);
-  const totalPix = pagas.filter(f=>f.formaPagamento==='pix').reduce((s,f)=>s+(f.valorRecebidoHoje ?? f.parcela),0);
-  const totalDinheiro = pagas.filter(f=>f.formaPagamento==='dinheiro').reduce((s,f)=>s+(f.valorRecebidoHoje ?? f.parcela),0);
+  const doDia = fichasDoDia(cobradorId);
+  const enviado = enviosDia[cobradorId] === true;
+  const posicao = new Map(doDia.map((f, i) => [f, i + 1]));
+  const busca = normalizaTxt(document.getElementById('busca-rota')?.value || '');
+  let mostrar = doDia;
+  if(filtroRota === 'cobrar') mostrar = mostrar.filter(f => f.status === 'pendente');
+  if(filtroRota === 'feitas') mostrar = mostrar.filter(f => f.status !== 'pendente');
+  if(busca) mostrar = mostrar.filter(f => {
+    const c = clientes.find(x => x.id === f.clienteId) || {};
+    return normalizaTxt([c.nome, c.endereco, c.numeroCasa, c.bairro, c.referencia, f.numero, f.mercadoria].join(' ')).includes(busca);
+  });
+  lista.innerHTML = mostrar.map(f => renderFichaCard(f, enviado, posicao.get(f))).join('') ||
+    `<div class="card-block" style="text-align:center;color:var(--ink-soft);">${doDia.length ? 'Nenhuma ficha com esse filtro.' : 'Nenhuma ficha para cobrar hoje.'}</div>`;
 
-  document.getElementById('rodape-dia').innerHTML = `
-    <div class="stat"><span class="label">Total cobrado hoje</span><span class="value">${formatBRL(totalDia)}</span></div>
-    <div class="stat"><span class="label">Recebido em Pix</span><span class="value">${formatBRL(totalPix)}</span></div>
-    <div class="stat"><span class="label">A entregar em espécie</span><span class="value">${formatBRL(totalDinheiro)}</span></div>
-  `;
+  const pagas = doDia.filter(f => f.status === 'paga');
+  const pendentes = doDia.filter(f => f.status === 'pendente');
+  const valor = f => (f.valorRecebidoHoje ?? f.parcela);
+  const totalDia = pagas.reduce((s, f) => s + valor(f), 0);
+  const totalPix = pagas.filter(f => f.formaPagamento === 'pix').reduce((s, f) => s + valor(f), 0);
+  const totalDinheiro = pagas.filter(f => f.formaPagamento === 'dinheiro').reduce((s, f) => s + valor(f), 0);
+  const feitas = doDia.length - pendentes.length;
+  document.getElementById('rd-total').textContent = formatBRL(totalDia);
+  document.getElementById('rd-linha').innerHTML =
+    `<span>Pix <b>${formatBRL(totalPix)}</b></span><span>Dinheiro a entregar <b>${formatBRL(totalDinheiro)}</b></span><span><b>${pagas.length}</b> paga(s)</span>`;
+  document.getElementById('rd-prog').style.width = (doDia.length ? Math.round(feitas / doDia.length * 100) : 0) + '%';
+  document.getElementById('rd-prog-txt').textContent = doDia.length
+    ? `${feitas} de ${doDia.length} ficha(s) visitada(s) · faltam ${pendentes.length}` : 'Nenhuma ficha vence hoje.';
+  document.getElementById('rodape-dia').innerHTML = '';
 
-  // envio do resultado do dia — só depois que toda a rota foi processada
   const envioBox = document.getElementById('envio-dia');
+  const botao = `<button class="btn primary" onclick="enviarResultadoDia()"><svg class="ico sm"><use href="#i-check"/></svg> Enviar resultado do dia</button>`;
   if(enviado){
     envioBox.className = 'envio-box enviado';
     envioBox.innerHTML = `<p>✓ Resultado do dia já enviado ao administrador.</p>`;
   } else if(doDia.length === 0){
     envioBox.className = 'envio-box';
-    envioBox.innerHTML = `
-      <p>Nenhuma ficha vencia hoje — se não trabalhou (domingo, feriado etc.), envie o resultado do dia mesmo assim para o administrador poder fechar o dia.</p>
-      <button class="btn primary" onclick="enviarResultadoDia()">Enviar resultado do dia</button>
-    `;
+    envioBox.innerHTML = `<p>Nenhuma ficha vencia hoje. Se não trabalhou (domingo, feriado etc.), envie o resultado do dia mesmo assim para o administrador poder fechar o dia.</p>${botao}`;
   } else if(pendentes.length > 0){
     envioBox.className = 'envio-box';
-    envioBox.innerHTML = `
-      <p>${pendentes.length} ficha(s) ainda não foram visitadas hoje. Ao enviar, elas ficam automaticamente marcadas para a cobrança de amanhã.</p>
-      <button class="btn primary" onclick="enviarResultadoDia()">Enviar resultado do dia</button>
-    `;
+    envioBox.innerHTML = `<p>${pendentes.length} ficha(s) ainda não foram visitadas hoje. Ao enviar, elas ficam marcadas para a cobrança de amanhã.</p>${botao}`;
   } else {
     envioBox.className = 'envio-box';
-    envioBox.innerHTML = `
-      <p>Toda a rota de hoje foi processada. Confira os valores acima e envie o resultado para o administrador.</p>
-      <button class="btn primary" onclick="enviarResultadoDia()">Enviar resultado do dia</button>
-    `;
+    envioBox.innerHTML = `<p>Toda a rota de hoje foi feita. Confira os valores e envie o resultado para o administrador.</p>${botao}`;
   }
 }
 
@@ -1015,64 +1064,71 @@ function enviarResultadoDia(){
   renderCobrador();
 }
 
-function renderFichaCard(f, enviado){
-  const statusClass = f.status==='paga' ? 'paga' : (f.status==='remarcada' ? 'remarcada' : '');
-  const stamp = f.status==='paga'
-    ? `<div class="stamp">PAGO · ${f.formaPagamento==='pix' ? 'PIX' : 'DINHEIRO'}${f.proximaData ? ' · PRÓX ' + new Date(f.proximaData+'T00:00:00').toLocaleDateString('pt-BR') : ''}</div>`
-    : (f.status==='remarcada' ? `<div class="stamp" style="border-color:var(--gold);color:var(--gold);">${f.remarcacaoAutomatica ? 'NÃO VISITADA' : 'REMARCADA'}${f.novaData ? ' · ' + new Date(f.novaData+'T00:00:00').toLocaleDateString('pt-BR') : ''}</div>` : '');
-
+function renderFichaCard(f, enviado, pos){
+  const c = clientes.find(x => x.id === f.clienteId) || {};
+  const statusClass = f.status === 'paga' ? 'paga' : (f.status === 'remarcada' ? 'remarcada' : '');
+  let stamp = '';
+  if(f.status === 'paga'){
+    stamp = `<div class="stamp"><svg class="ico sm"><use href="#i-check"/></svg> PAGO ${formatBRL(f.valorRecebidoHoje ?? f.parcela)} · ${f.formaPagamento === 'pix' ? 'PIX' : 'DINHEIRO'}${f.quitada ? ' · QUITADA' : ''}${f.proximaData ? ' · PRÓXIMA ' + dataBR(f.proximaData) : ''}</div>`;
+  } else if(f.status === 'remarcada'){
+    stamp = `<div class="stamp cinza">${f.remarcacaoAutomatica ? 'NÃO VISITADA' : 'REMARCADA'}${f.novaData ? ' · ' + dataBR(f.novaData) : ''}</div>`;
+  }
   const restante = f.valorTotal - f.valorPago;
-
-  const actions = (f.status==='pendente' && !enviado) ? `
+  const tel = telLimpo(c.telefone);
+  const atalhos = `<div class="atalhos">
+      <a class="atalho${tel ? '' : ' off'}" href="${tel ? 'tel:+' + tel : '#'}"><svg class="ico sm"><use href="#i-telefone"/></svg> Ligar</a>
+      <a class="atalho${tel ? '' : ' off'}" href="${tel ? 'https://wa.me/' + tel : '#'}" target="_blank" rel="noopener"><svg class="ico sm"><use href="#i-mensagem"/></svg> WhatsApp</a>
+      <a class="atalho" href="${mapaLink(f.clienteId)}" target="_blank" rel="noopener"><svg class="ico sm"><use href="#i-pino"/></svg> Mapa</a>
+    </div>`;
+  const actions = (f.status === 'pendente' && !enviado) ? `
     <div class="ficha-actions">
-      <button class="btn primary" onclick="abrirBaixa('${f.numero}')">Dar baixa</button>
-      <button class="btn ghost" onclick="abrirRemarcar('${f.numero}')">Remarcar</button>
+      <button class="btn primary" onclick="abrirBaixa('${f.numero}')"><svg class="ico sm"><use href="#i-dinheiro"/></svg> Dar baixa</button>
+      <button class="btn ghost" onclick="abrirRemarcar('${f.numero}')"><svg class="ico sm"><use href="#i-calendario"/></svg> Remarcar</button>
     </div>
     <div class="inline-form" id="baixa-${f.numero}">
-      <input type="number" id="valorpago-${f.numero}" value="${f.parcela}" min="0" step="5" style="width:110px;" oninput="atualizarCampoProximaData('${f.numero}')">
-      <select id="forma-${f.numero}">
+      <input type="number" id="valorpago-${f.numero}" value="${f.parcela}" min="0" step="0.01" inputmode="decimal" style="width:130px;flex:0 0 auto;" oninput="atualizarCampoProximaData('${f.numero}')">
+      <select id="forma-${f.numero}" style="flex:0 0 auto;">
         <option value="dinheiro">Dinheiro</option>
         <option value="pix">Pix</option>
       </select>
-      <div id="proxima-data-wrap-${f.numero}" style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:0.8rem; color:var(--ink-soft);">Próxima cobrança:</span>
+      <div id="proxima-data-wrap-${f.numero}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span style="font-size:0.82rem; color:var(--ink-soft);">Próxima cobrança:</span>
         <input type="date" id="proxima-data-${f.numero}" min="${HOJE}">
       </div>
       <button class="btn primary" onclick="confirmarBaixa('${f.numero}')">Confirmar pagamento</button>
-      <div id="baixa-erro-${f.numero}" style="width:100%; font-size:0.8rem; color:var(--stamp-red);"></div>
+      <div id="baixa-erro-${f.numero}" style="width:100%; font-size:0.84rem; color:var(--stamp-red);"></div>
     </div>
     <div class="inline-form" id="remarcar-${f.numero}">
+      <span style="font-size:0.82rem; color:var(--ink-soft);">Nova data:</span>
       <input type="date" id="nova-data-${f.numero}" min="${HOJE}">
       <button class="btn primary" onclick="confirmarRemarcacao('${f.numero}')">Confirmar nova data</button>
     </div>
   ` : '';
-
-  const proxima = (f.status==='paga' && !f.quitada && !confirmacoesAdmin[f.cobradorId]) ? `
-    <div class="inline-form show" style="margin-top:8px;">
-      <span style="font-size:.8rem;color:var(--ink-soft);">Próxima cobrança:</span>
-      <input type="date" id="prox-${f.numero}" value="${f.proximaData||''}" min="${HOJE}">
-      <button class="btn ghost" onclick="salvarProximaData('${f.numero}')">Salvar data</button>
+  const proxima = (f.status === 'paga' && !f.quitada && !confirmacoesAdmin[f.cobradorId]) ? `
+    <div class="inline-form show" style="margin-top:12px;">
+      <span style="font-size:.82rem;color:var(--ink-soft);">Próxima cobrança:</span>
+      <input type="date" id="prox-${f.numero}" value="${f.proximaData || ''}" min="${HOJE}">
+      <button class="btn ghost pequeno" onclick="salvarProximaData('${f.numero}')">Salvar data</button>
     </div>` : '';
   const ultimoPg = (f.pagamentos || []).filter(p => !p.inicial).slice(-1)[0];
-  const recibo = (f.status==='paga' && ultimoPg && ultimoPg.data===HOJE) ? `
-    <div class="ficha-actions"><button class="btn ghost" onclick="enviarRecibo('${f.numero}')">Enviar recibo (WhatsApp)</button></div>` : '';
+  const recibo = (f.status === 'paga' && ultimoPg && ultimoPg.data === HOJE) ? `
+    <div class="ficha-actions"><button class="btn ghost" onclick="enviarRecibo('${f.numero}')"><svg class="ico sm"><use href="#i-mensagem"/></svg> Enviar recibo (WhatsApp)</button></div>` : '';
   return `
     <div class="ficha-card ${statusClass}">
-      ${stamp}
       <div class="ficha-top">
-        <div>
-          <div class="ficha-num">FICHA Nº ${f.numero} · ${f.mercadoria}</div>
-          <h3>${clienteNome(f.clienteId)}</h3>
-          <div class="ficha-endereco">${clienteEndereco(f.clienteId)} · <a href="${mapaLink(f.clienteId)}" target="_blank" rel="noopener">Abrir no mapa</a></div>
-          ${clienteReferencia(f.clienteId) ? `<div class="ficha-endereco" style="font-style:italic;">Ref.: ${clienteReferencia(f.clienteId)}</div>` : ''}
-          <div class="ficha-endereco mono">Total: ${formatBRL(f.valorTotal)} · Restante: ${formatBRL(restante)}</div>
+        <div style="min-width:0;">
+          <div class="ficha-num">${pos ? `<span class="pos" title="Posição na rota">${pos}º</span>` : ''}FICHA Nº ${f.numero} · ${h(f.mercadoria)}${c.bairro ? ' · ' + h(c.bairro) : ''}</div>
+          <h3>${h(c.nome || '—')}</h3>
+          <div class="ficha-endereco">${h(enderecoCompleto(c)) || 'Sem endereço'}</div>
+          ${c.referencia ? `<div class="ficha-endereco" style="font-style:italic;">Ref.: ${h(c.referencia)}</div>` : ''}
+          <div class="ficha-endereco mono" style="font-size:.8rem;">Total ${formatBRL(f.valorTotal)} · Restante ${formatBRL(restante)}</div>
         </div>
         <div>
           <div class="ficha-valor">${formatBRL(f.parcela)}</div>
-          <div style="font-size:0.68rem; color:var(--ink-soft); text-align:right;">parcela</div>
+          <div style="font-size:0.7rem; color:var(--ink-muted); text-align:right;">parcela</div>
         </div>
       </div>
-      ${actions}${proxima}${recibo}
+      ${stamp}${atalhos}${actions}${proxima}${recibo}
     </div>
   `;
 }
@@ -1162,25 +1218,73 @@ function todosBairros(){
   return [...new Set(cobradores.flatMap(c=>c.bairros))];
 }
 function populateBairroSelect(){
-  const sel = document.getElementById('lancar-bairro');
-  const atual = sel.value;
-  sel.innerHTML = '<option value="">Bairro</option>' +
-    todosBairros().map(b=>`<option value="${b}">${b}</option>`).join('');
-  sel.value = atual;
+  const dl = document.getElementById('lista-bairros');
+  if(dl) dl.innerHTML = todosBairros().sort((a, b) => a.localeCompare(b, 'pt-BR')).map(b => `<option value="${h(b)}"></option>`).join('');
+  const sc = document.getElementById('lancar-cobrador');
+  if(sc){
+    const atual = sc.value;
+    sc.innerHTML = '<option value="">Automático (pelo bairro)</option>' + cobradoresAtivos().map(c => `<option value="${c.id}">${h(c.nome)}</option>`).join('');
+    sc.value = cobradoresAtivos().some(c => c.id === atual) ? atual : '';
+  }
+  const v = document.getElementById('lancar-vencimento');
+  if(v && !v.value) v.value = HOJE;
 }
 // ---------- Cadastro de cobradores ----------
+let cobFichasAberto = null;
 function renderCobradores(){
   const tbody = document.getElementById('tabela-cobradores');
-  tbody.innerHTML = cobradores.map(c => `
+  tbody.innerHTML = cobradores.map(c => {
+    const dia = fichasDoDia(c.id), pend = dia.filter(f => f.status === 'pendente').length;
+    const carteira = fichas.filter(f => f.cobradorId === c.id && !f.quitada && !f.cancelada).length;
+    return `
     <tr>
-      <td>${linkCobrador(c.id, c.nome)}</td>
-      <td class="mono">${c.login}</td>
+      <td><div class="avatar-wrap">${avatarHTML(c)}<span>${linkCobrador(c.id, c.nome)}<br><span class="mono" style="font-size:.76rem;color:var(--ink-muted);">${h(c.login)}</span></span></div></td>
+      <td>${dia.length ? `<b>${dia.length}</b> ficha(s) <span class="badge ${pend ? 'wait' : 'ok'}">${pend ? pend + ' a cobrar' : 'todas visitadas'}</span>` : '<span class="badge neutro">nenhuma hoje</span>'}</td>
+      <td class="num">${carteira}</td>
+      <td>${c.bairros.length ? c.bairros.map(b => `<span class="chip">${h(b)}</span>`).join('') : '—'}</td>
       <td>${c.periodicidade === 'mensal' ? 'Por mês' : 'Por semana'}</td>
-      <td>${c.bairros.join(', ') || '—'}</td>
-      <td><input type="text" id="ns-${c.id}" placeholder="nova senha" style="width:110px;"> <button class="btn ghost" onclick="trocarSenha('${c.id}')">Salvar</button></td>
-      <td>${c.ativo === false ? 'Desativado' : 'Ativo'} <button class="btn ghost" onclick="alternarAtivoCobrador('${c.id}')">${c.ativo === false ? 'Reativar' : 'Desativar'}</button></td>
-    </tr>
-  `).join('');
+      <td>${c.ativo === false ? '<span class="badge neutro">Desativado</span>' : '<span class="badge ok">Ativo</span>'} <button class="btn ghost pequeno" onclick="alternarAtivoCobrador('${c.id}')">${c.ativo === false ? 'Reativar' : 'Desativar'}</button></td>
+      <td><button class="btn ${cobFichasAberto === c.id ? 'primary' : 'ghost'} pequeno" onclick="verFichasDiaCobrador('${c.id}')"><svg class="ico sm"><use href="#i-olho"/></svg> Fichas de hoje</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="color:var(--ink-soft);">Nenhum cobrador cadastrado ainda.</td></tr>';
+  renderFichasDiaCobrador();
+}
+function verFichasDiaCobrador(id){
+  cobFichasAberto = cobFichasAberto === id ? null : id;
+  renderCobradores();
+  const box = document.getElementById('cob-fichas-dia');
+  if(cobFichasAberto && box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function renderFichasDiaCobrador(){
+  const box = document.getElementById('cob-fichas-dia');
+  if(!box) return;
+  const c = cobradores.find(x => x.id === cobFichasAberto);
+  if(!c){ box.innerHTML = ''; return; }
+  const dia = fichasDoDia(c.id);
+  const val = f => (f.valorRecebidoHoje ?? f.parcela);
+  const pagas = dia.filter(f => f.status === 'paga'), pend = dia.filter(f => f.status === 'pendente');
+  const rem = dia.filter(f => f.status === 'remarcada');
+  const situ = f => f.status === 'paga' ? `<span class="badge ok">Paga · ${formatBRL(val(f))} ${formaTxt(f.formaPagamento)}</span>`
+    : f.status === 'remarcada' ? `<span class="badge neutro">${f.remarcacaoAutomatica ? 'Não visitada' : 'Remarcada'}${f.novaData ? ' p/ ' + dataBR(f.novaData) : ''}</span>`
+    : '<span class="badge wait">A cobrar</span>';
+  box.innerHTML = `<div class="card-block">
+    <div class="section-title" style="margin-top:0;"><h2>Fichas de hoje — ${h(c.nome)}</h2>
+      <div class="acoes" style="margin:0;"><button class="btn ghost pequeno" onclick="abrirOrganizador('${c.id}')"><svg class="ico sm"><use href="#i-ordem"/></svg> Organizar ordem</button>
+      <button class="btn ghost pequeno" onclick="verFichasDiaCobrador('${c.id}')">Fechar</button></div></div>
+    <div class="detalhe-grid" style="margin-bottom:14px;">
+      <div class="stat"><span class="label">Fichas no dia</span><span class="value">${dia.length}</span></div>
+      <div class="stat"><span class="label">A cobrar</span><span class="value">${pend.length}</span></div>
+      <div class="stat"><span class="label">Pagas</span><span class="value">${pagas.length}</span></div>
+      <div class="stat"><span class="label">Remarcadas / não visitadas</span><span class="value">${rem.length}</span></div>
+      <div class="stat"><span class="label">Recebido hoje</span><span class="value">${formatBRL(pagas.reduce((s, f) => s + val(f), 0))}</span></div>
+      <div class="stat"><span class="label">Previsto no dia</span><span class="value">${formatBRL(dia.reduce((s, f) => s + f.parcela, 0))}</span></div>
+    </div>
+    ${enviosDia[c.id] ? `<p style="font-size:.86rem;margin:0 0 12px;">${confirmacoesAdmin[c.id] ? '<span class="badge ok">Dia conferido</span>' : '<span class="badge wait">Resultado enviado, aguardando conferência</span>'}</p>` : ''}
+    <div class="tabela-wrap"><table><thead><tr><th>#</th><th>Ficha</th><th>Cliente</th><th>Endereço</th><th class="num">Parcela</th><th>Situação</th></tr></thead><tbody>
+    ${dia.map((f, i) => { const cl = clientes.find(x => x.id === f.clienteId) || {};
+      return `<tr><td class="mono">${i + 1}</td><td class="mono">${f.numero}</td><td>${h(cl.nome || '—')}</td><td style="font-size:.84rem;">${h(enderecoCompleto(cl))}${cl.bairro ? ' · ' + h(cl.bairro) : ''}</td><td class="num">${formatBRL(f.parcela)}</td><td>${situ(f)}</td></tr>`; }).join('')
+      || '<tr><td colspan="6" style="color:var(--ink-soft);">Nenhuma ficha para este cobrador hoje.</td></tr>'}
+    </tbody></table></div></div>`;
 }
 
 function cadastrarCobrador(){
@@ -1217,26 +1321,113 @@ function cadastrarCobrador(){
 }
 
 // ---------- Rotas por bairro ----------
+const enc = s => encodeURIComponent(String(s)).replace(/'/g, '%27');
 function renderRotas(){
-  const tbody = document.getElementById('tabela-rotas');
-  tbody.innerHTML = cobradores.map(c=>`
-    <tr>
-      <td>${linkCobrador(c.id, c.nome)}</td>
-      <td>${c.bairros.join(', ')}</td>
-      <td>
-        <input type="text" id="novo-bairro-${c.id}" placeholder="Nome do bairro" style="padding:5px 8px; border:1px solid var(--line); border-radius:3px; font-size:0.82rem;">
-        <button class="btn ghost" style="padding:5px 10px; font-size:0.78rem;" onclick="adicionarBairro('${c.id}')">Adicionar</button>
-      </td>
-    </tr>
-  `).join('');
+  const box = document.getElementById('rotas-lista');
+  if(!box) return;
+  box.innerHTML = cobradores.filter(c => c.ativo !== false || c.bairros.length).map(c => `
+    <div class="card-block">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">${avatarHTML(c)}
+        <div style="flex:1;min-width:0;"><b>${linkCobrador(c.id, c.nome)}</b>
+        <div style="font-size:.8rem;color:var(--ink-muted);">${c.bairros.length} bairro(s) na rota${c.ativo === false ? ' · cobrador desativado' : ''}</div></div></div>
+      <div>${c.bairros.length ? c.bairros.map(b => `<span class="chip chip-bairro">${h(b)}
+          <button title="Editar bairro" aria-label="Editar ${h(b)}" onclick="abrirEditarBairro(decodeURIComponent('${enc(b)}'))"><svg class="ico sm"><use href="#i-lapis"/></svg></button>
+          <button class="rm" title="Remover da rota" aria-label="Remover ${h(b)}" onclick="removerBairro(decodeURIComponent('${enc(b)}'))"><svg class="ico sm"><use href="#i-x"/></svg></button></span>`).join('')
+        : '<span style="color:var(--ink-muted);font-size:.88rem;">Nenhum bairro ainda.</span>'}</div>
+      ${c.ativo !== false ? `<div class="vale-form" style="margin:14px 0 0;"><input type="text" id="novo-bairro-${c.id}" placeholder="Nome do bairro" onkeydown="if(event.key==='Enter')adicionarBairro('${c.id}')">
+        <button class="btn ghost" onclick="adicionarBairro('${c.id}')"><svg class="ico sm"><use href="#i-mais"/></svg> Adicionar bairro</button></div>` : ''}
+    </div>`).join('') || '<div class="card-block" style="color:var(--ink-soft);">Cadastre um cobrador primeiro, na tela Cobradores.</div>';
 }
+function donoDoBairro(b){ return cobradores.find(c => c.bairros.some(x => normalizaTxt(x) === normalizaTxt(b))) || null; }
 function adicionarBairro(cobradorId){
-  const input = document.getElementById('novo-bairro-'+cobradorId);
+  const input = document.getElementById('novo-bairro-' + cobradorId);
   const bairro = input.value.trim();
   if(!bairro) return;
-  cobradores.find(c=>c.id===cobradorId).bairros.push(bairro);
-  renderRotas();
+  const dono = donoDoBairro(bairro);
+  if(dono) dono.bairros = dono.bairros.filter(x => normalizaTxt(x) !== normalizaTxt(bairro));
+  cobradores.find(c => c.id === cobradorId).bairros.push(bairro);
+  if(dono && dono.id !== cobradorId) toast('O bairro ' + bairro + ' saiu da rota de ' + dono.nome + '.', true);
+  renderRotas(); renderCobradores();
   populateBairroSelect();
+}
+function fichasAtivasDoBairro(b, cobradorId){
+  return fichas.filter(f => {
+    if(f.quitada || f.cancelada) return false;
+    if(cobradorId && f.cobradorId !== cobradorId) return false;
+    const cl = clientes.find(x => x.id === f.clienteId);
+    return cl && normalizaTxt(cl.bairro) === normalizaTxt(b);
+  });
+}
+// versão local (modo demonstração); a camada online troca por uma chamada ao banco
+async function aplicarEdicaoBairro(antigo, novo, cobradorId, mover){
+  const dono = donoDoBairro(antigo);
+  if(!dono) throw new Error('Bairro não encontrado na rota.');
+  const outro = donoDoBairro(novo);
+  if(outro && normalizaTxt(novo) !== normalizaTxt(antigo)) throw new Error('O bairro "' + novo + '" já existe na rota de ' + outro.nome + '.');
+  const velho = dono.bairros.find(x => normalizaTxt(x) === normalizaTxt(antigo));
+  const destino = cobradores.find(c => c.id === cobradorId) || dono;
+  let movidas = 0, nCli = 0;
+  if(mover && destino.id !== dono.id){
+    fichasAtivasDoBairro(velho, dono.id).filter(f => !(f.pagamentos || []).some(p => p.data === HOJE && !p.inicial))
+      .forEach(f => { f.cobradorId = destino.id; f.ordem = null; movidas++; });
+  }
+  dono.bairros = dono.bairros.filter(x => x !== velho);
+  destino.bairros.push(novo);
+  if(novo !== velho) clientes.forEach(c => { if(normalizaTxt(c.bairro) === normalizaTxt(velho)){ c.bairro = novo; nCli++; } });
+  registrar('Bairro editado', h(velho) + ' → ' + h(novo) + ' · ' + h(destino.nome));
+  renderAdmin(); renderCobrador();
+  return { clientes: nCli, movidas };
+}
+async function aplicarRemoverBairro(b){
+  const dono = donoDoBairro(b);
+  if(!dono) throw new Error('Bairro não encontrado na rota.');
+  dono.bairros = dono.bairros.filter(x => normalizaTxt(x) !== normalizaTxt(b));
+  registrar('Bairro removido da rota', h(b));
+  renderAdmin();
+}
+function abrirEditarBairro(b){
+  const dono = donoDoBairro(b);
+  if(!dono) return;
+  const ativas = fichasAtivasDoBairro(b, dono.id).length;
+  const m = abrirModal({
+    titulo: 'Editar bairro',
+    corpo: `<label class="campo">Nome do bairro<input type="text" id="eb-nome" value="${h(b)}"></label>
+      <label class="campo">Cobrador que atende este bairro<select id="eb-cob">${cobradoresAtivos().map(c => `<option value="${c.id}" ${c.id === dono.id ? 'selected' : ''}>${h(c.nome)}</option>`).join('')}</select></label>
+      <div id="eb-mover-box" style="display:none;"><label class="linha-check"><input type="checkbox" id="eb-mover" checked> Passar também as ${ativas} ficha(s) ativa(s) deste bairro que estão com ${h(dono.nome)}</label>
+      <p style="font-size:.8rem;">Sem marcar, só as fichas novas vão para o novo cobrador. Fichas com pagamento hoje ficam para amanhã.</p></div>
+      <p style="font-size:.8rem;">Ao renomear, os clientes cadastrados neste bairro passam a usar o nome novo.</p>
+      <p class="erro-txt" id="eb-erro"></p>`,
+    botoes: [
+      { txt: 'Cancelar', acao: m => m.fechar() },
+      { txt: 'Salvar', cls: 'primary', acao: async (m, btn) => {
+          const novo = document.getElementById('eb-nome').value.trim(), cob = document.getElementById('eb-cob').value;
+          const mover = cob !== dono.id && document.getElementById('eb-mover').checked;
+          const er = document.getElementById('eb-erro');
+          if(!novo){ er.textContent = 'Informe o nome do bairro.'; return; }
+          btn.disabled = true; er.textContent = '';
+          try {
+            const r = await aplicarEdicaoBairro(b, novo, cob, mover);
+            m.fechar();
+            toast('Bairro salvo.' + (r && r.movidas ? ' ' + r.movidas + ' ficha(s) passaram para ' + cobradorNome(cob) + '.' : ''), true);
+          } catch(e){ er.textContent = e.message || String(e); btn.disabled = false; }
+        } }
+    ]
+  });
+  const sel = document.getElementById('eb-cob');
+  const box = document.getElementById('eb-mover-box');
+  sel.onchange = () => { box.style.display = (sel.value !== dono.id && ativas) ? '' : 'none'; };
+}
+async function removerBairro(b){
+  const dono = donoDoBairro(b);
+  if(!dono) return;
+  const ativas = fichasAtivasDoBairro(b).length;
+  const ok = await confirmar(`Tirar o bairro <b>${h(b)}</b> da rota de ${h(dono.nome)}?`
+    + (ativas ? `<br><br>As ${ativas} ficha(s) ativa(s) de clientes desse bairro continuam com os cobradores atuais.` : '')
+    + '<br><br>Fichas novas desse bairro só poderão ser lançadas escolhendo o cobrador, ou depois de colocar o bairro na rota de alguém.',
+    { titulo: 'Remover bairro', ok: 'Remover', perigo: true });
+  if(!ok) return;
+  try { await aplicarRemoverBairro(b); toast('Bairro ' + b + ' removido da rota.', true); }
+  catch(e){ toast(e.message || String(e)); }
 }
 
 // ---------- Lançar ficha ----------
@@ -1253,8 +1444,10 @@ function buscarClienteExistente(){
     if(encontrados.length === 1){
       const existente = encontrados[0];
       clienteSelecionadoId = existente.id;
-      document.getElementById('lancar-endereco').value = existente.endereco;
+      document.getElementById('lancar-endereco').value = existente.endereco || '';
+      document.getElementById('lancar-casa').value = existente.numeroCasa || '';
       document.getElementById('lancar-referencia').value = existente.referencia || '';
+      if(existente.telefone && !document.getElementById('lancar-telefone').value) document.getElementById('lancar-telefone').value = existente.telefone;
       document.getElementById('lancar-bairro').value = existente.bairro;
     }
 
@@ -1264,7 +1457,7 @@ function buscarClienteExistente(){
         const itens = fichasCliente.length
           ? fichasCliente.map(f => `Nº ${f.numero} · ${f.mercadoria} — ${f.quitada ? 'quitada' : 'em cobrança'}`).join('<br>')
           : 'sem fichas registradas ainda';
-        return `<strong>${cli.nome}</strong> (${cli.endereco})<br>${itens}`;
+        return `<strong>${h(cli.nome)}</strong> (${h(enderecoCompleto(cli))}${cli.bairro ? ' · ' + h(cli.bairro) : ''})<br>${itens}`;
       }).join('<hr style="border:none; border-top:1px dashed var(--line); margin:8px 0;">');
 
       info.style.display = 'block';
@@ -1278,13 +1471,16 @@ function buscarClienteExistente(){
     info.style.display = 'none';
   }
 
-  const bairroAtual = document.getElementById('lancar-bairro').value;
+  const bairroAtual = document.getElementById('lancar-bairro').value.trim();
+  const escolhido = (document.getElementById('lancar-cobrador') || {}).value;
   const destino = document.getElementById('rota-destino');
-  if(bairroAtual){
+  if(escolhido){
+    destino.textContent = `Vai para ${cobradorNome(escolhido)} (escolhido por você).`;
+  } else if(bairroAtual){
     const cobradorId = cobradorPorBairro(bairroAtual);
     destino.textContent = cobradorId
       ? `Vai automaticamente para a rota de ${cobradorNome(cobradorId)}.`
-      : `Nenhum cobrador atende esse bairro ainda — cadastre a rota primeiro.`;
+      : `Nenhum cobrador atende esse bairro ainda. Cadastre o bairro em "Rotas por bairro" ou escolha o cobrador abaixo.`;
   } else {
     destino.textContent = '';
   }
@@ -1292,8 +1488,11 @@ function buscarClienteExistente(){
 
 function lancarFicha(){
   const nome = document.getElementById('lancar-nome').value.trim();
-  const bairro = document.getElementById('lancar-bairro').value;
+  const bairroDigitado = document.getElementById('lancar-bairro').value.trim();
+  const bairro = todosBairros().find(b => normalizaTxt(b) === normalizaTxt(bairroDigitado)) || bairroDigitado;
   const endereco = document.getElementById('lancar-endereco').value.trim();
+  const numeroCasa = document.getElementById('lancar-casa').value.trim();
+  const escolhido = document.getElementById('lancar-cobrador').value;
   const referencia = document.getElementById('lancar-referencia').value.trim();
   const mercadoria = document.getElementById('lancar-mercadoria').value.trim();
   const valorTotal = parseFloat(document.getElementById('lancar-total').value);
@@ -1306,9 +1505,9 @@ function lancarFicha(){
     status.style.color = 'var(--stamp-red)';
     return;
   }
-  const cobradorId = cobradorPorBairro(bairro);
+  const cobradorId = escolhido || cobradorPorBairro(bairro);
   if(!cobradorId){
-    status.textContent = 'Esse bairro ainda não está na rota de nenhum cobrador. Cadastre em "Rotas por bairro".';
+    status.textContent = 'Esse bairro ainda não está na rota de nenhum cobrador. Cadastre em "Rotas por bairro" ou escolha o cobrador.';
     status.style.color = 'var(--stamp-red)';
     return;
   }
@@ -1323,11 +1522,11 @@ function lancarFicha(){
   let clienteId = clienteSelecionadoId;
   if(!clienteId){
     clienteId = 'cl' + (clientes.length + 1);
-    clientes.push({ id: clienteId, nome, endereco, bairro, referencia, telefone: document.getElementById('lancar-telefone').value.trim() });
+    clientes.push({ id: clienteId, nome, endereco, numeroCasa, bairro, referencia, telefone: document.getElementById('lancar-telefone').value.trim() });
   } else {
     // cliente já existia — mantém a referência atualizada com o que foi digitado agora
     const clienteExistente = clientes.find(c=>c.id===clienteId);
-    if(clienteExistente){ clienteExistente.referencia = referencia; const t = document.getElementById('lancar-telefone').value.trim(); if(t) clienteExistente.telefone = t; }
+    if(clienteExistente){ if(endereco){ clienteExistente.endereco = endereco; clienteExistente.numeroCasa = numeroCasa; } clienteExistente.referencia = referencia; const t = document.getElementById('lancar-telefone').value.trim(); if(t) clienteExistente.telefone = t; }
   }
 
   const novoNumero = numeroEscolhido;
@@ -1343,12 +1542,15 @@ function lancarFicha(){
   renderFichas(); renderAtrasadas(); renderNumeracao();
   document.getElementById('lancar-nome').value = '';
   document.getElementById('lancar-endereco').value = '';
+  document.getElementById('lancar-casa').value = '';
+  document.getElementById('lancar-cobrador').value = '';
   document.getElementById('lancar-referencia').value = '';
   document.getElementById('lancar-mercadoria').value = '';
   document.getElementById('lancar-total').value = '';
   document.getElementById('lancar-parcela').value = '';
   document.getElementById('cliente-encontrado').style.display = 'none';
-  renderConferencia();
+  document.getElementById('rota-destino').textContent = '';
+  renderAdmin();
 }
 
 // ---------- Fichas encerradas ----------
@@ -1803,6 +2005,7 @@ buscarClienteExistente = function(){
   }
   document.getElementById('lancar-nome').value = ex.nome;
   document.getElementById('lancar-endereco').value = ex.endereco || '';
+  document.getElementById('lancar-casa').value = ex.numeroCasa || '';
   document.getElementById('lancar-referencia').value = ex.referencia || '';
   document.getElementById('lancar-telefone').value = ex.telefone || '';
   document.getElementById('lancar-bairro').value = ex.bairro || '';
@@ -1811,7 +2014,7 @@ buscarClienteExistente = function(){
   const fs = fichas.filter(f => f.clienteId === ex.id);
   const info = document.getElementById('cliente-encontrado');
   info.style.display = 'block';
-  info.innerHTML = `Cliente identificado pelo CPF — esta será uma nova compra para ele:<br><strong>${h(ex.nome)}</strong> (${h(ex.endereco || '')})<br>`
+  info.innerHTML = `Cliente identificado pelo CPF — esta será uma nova compra para ele:<br><strong>${h(ex.nome)}</strong> (${h(enderecoCompleto(ex))})<br>`
     + (fs.length ? fs.map(f => `Nº ${f.numero} · ${h(f.mercadoria)} — ${f.cancelada ? 'cancelada' : f.quitada ? 'quitada' : 'em cobrança'}`).join('<br>') : 'sem fichas registradas ainda');
 };
 const _lancarFichaCpf = lancarFicha;
@@ -1870,7 +2073,6 @@ function sair(){
   sessao = null;
   document.getElementById('tela-login').style.display = 'flex';
   document.getElementById('btn-sair').style.display = 'none';
-  document.getElementById('view-admin').classList.remove('active');
 }
 function trocarSenha(id){
   const campo = document.getElementById('ns-'+id), nova = campo.value.trim();
@@ -1889,7 +2091,8 @@ function abrirEdicao(numero){
   box.style.display = 'block';
   box.innerHTML = `<h3>Editar ficha ${f.numero} — ${clienteNome(f.clienteId)}</h3>
     <div class="vale-form">
-      <input type="text" id="ed-endereco" value="${esc(c.endereco)}" placeholder="Endereço" style="flex:1;min-width:220px;">
+      <input type="text" id="ed-endereco" value="${esc(c.endereco)}" placeholder="Endereço" style="flex:3 1 220px;">
+      <input type="text" id="ed-casa" value="${esc(c.numeroCasa)}" placeholder="Nº da casa" maxlength="20" style="flex:1 1 90px;">
       <input type="text" id="ed-ref" value="${esc(c.referencia)}" placeholder="Referência" style="flex:1;min-width:200px;">
       <input type="text" id="ed-tel" value="${esc(c.telefone)}" placeholder="Telefone / WhatsApp" style="min-width:180px;">
       <input type="text" id="ed-cpf" value="${esc(mascaraCPF(c.cpf))}" placeholder="CPF" maxlength="14" inputmode="numeric" autocomplete="off" oninput="this.value=mascaraCPF(this.value)" style="min-width:150px;">
@@ -1904,7 +2107,7 @@ function abrirEdicao(numero){
     <p style="font-size:.85rem;color:var(--ink-soft);">Total atual ${formatBRL(f.valorTotal)} · pago ${formatBRL(f.valorPago)}. O endereço vale para o cliente (todas as fichas dele).</p>
     <div class="vale-form">
       <span style="font-size:.85rem;">Enviar para o cobrador:</span>
-      <select id="ed-cobrador">${cobradores.map(k=>`<option value="${k.id}" ${k.id===f.cobradorId?'selected':''}>${k.nome}</option>`).join('')}</select>
+      <select id="ed-cobrador">${cobradores.filter(k=>k.ativo!==false||k.id===f.cobradorId).map(k=>`<option value="${k.id}" ${k.id===f.cobradorId?'selected':''}>${k.nome}</option>`).join('')}</select>
       <input type="date" id="ed-data" min="${HOJE}">
     </div>
     <p style="font-size:.8rem;color:var(--ink-soft);">Pode ser qualquer cobrador, mesmo de outra rota (ex.: cliente pagou adiantado). Com a data, a ficha volta a ser cobrada nesse dia; sem data, só muda de cobrador.</p>
@@ -1914,7 +2117,7 @@ function abrirEdicao(numero){
 function salvarEdicao(numero){
   const f = fichas.find(x=>x.numero===numero), c = clientes.find(x=>x.id===f.clienteId);
   const v = id => document.getElementById(id).value.trim();
-  if(c){ if(v('ed-endereco')) c.endereco = v('ed-endereco'); c.referencia = v('ed-ref'); c.telefone = v('ed-tel'); }
+  if(c){ if(v('ed-endereco')) c.endereco = v('ed-endereco'); if(document.getElementById('ed-casa')) c.numeroCasa = v('ed-casa'); c.referencia = v('ed-ref'); c.telefone = v('ed-tel'); }
   let merc = v('ed-merc') || f.mercadoria;
   if(v('ed-merc-nova')) merc += ' + ' + v('ed-merc-nova');
   f.mercadoria = merc;
@@ -1995,11 +2198,7 @@ function dadosHistorico(){
 
 // ---------- Histórico de um cobrador (clicando no nome) ----------
 let cobHistId = null;
-function mostrarAbaAdmin(tab){
-  document.querySelectorAll('.admin-tabs button').forEach(b => b.classList.toggle('active', b.getAttribute('onclick') === "setAdminTab('" + tab + "')"));
-  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('admin-' + tab).classList.add('active');
-}
+function mostrarAbaAdmin(tab){ irPara(tab); }
 function linkCobrador(id, nome){
   return `<a href="#" class="link-cob" title="Ver histórico de cobrança" onclick="abrirHistoricoCobrador('${id}');return false;">${h(nome)}</a>`;
 }
@@ -2297,7 +2496,7 @@ function telLimpo(t){ const d = String(t || '').replace(/\D/g,''); return d ? (d
 function abrirWpp(tel, texto){ window.open('https://wa.me/' + telLimpo(tel) + '?text=' + encodeURIComponent(texto), '_blank'); }
 function mapaLink(clienteId){
   const c = clientes.find(x => x.id===clienteId) || {};
-  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([c.endereco, c.bairro].filter(Boolean).join(', '));
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([enderecoCompleto(c), c.bairro].filter(Boolean).join(', '));
 }
 function enviarRecibo(numero, i){
   const f = fichas.find(x => x.numero===numero);
@@ -2321,7 +2520,7 @@ function lembrarCliente(numero){
 const ALIAS = { numero:'numero', n:'numero', ficha:'numero', num:'numero', cliente:'cliente', nome:'cliente', bairro:'bairro',
   endereco:'endereco', referencia:'referencia', telefone:'telefone', whatsapp:'telefone', mercadoria:'mercadoria',
   valor_total:'valor_total', total:'valor_total', valor_pago:'valor_pago', pago:'valor_pago', parcela:'parcela',
-  valor_parcela:'parcela', cpf:'cpf', documento:'cpf', proxima_cobranca:'data', vencimento:'data', proxima_data:'data', data:'data' };
+  valor_parcela:'parcela', cpf:'cpf', documento:'cpf', numero_casa:'numero_casa', numero_da_casa:'numero_casa', n_casa:'numero_casa', n_da_casa:'numero_casa', no_casa:'numero_casa', num_casa:'numero_casa', casa:'numero_casa', proxima_cobranca:'data', vencimento:'data', proxima_data:'data', data:'data' };
 const normalizaCab = x => String(x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 const normalizaTxt = x => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
 function acharBairro(nome){ return todosBairros().find(b => normalizaTxt(b) === normalizaTxt(nome)) || null; }
@@ -2389,7 +2588,7 @@ function analisarImportacao(texto){
     else if(r.cpf && !validarCPF(r.cpf)) msg = 'CPF inválido';
     if(msg){ erros.push({ linha: lin, msg }); return; }
     usados.add(numero);
-    validas.push({ linha: lin, numero, cliente:r.cliente, bairro, endereco:r.endereco || '', referencia:r.referencia || '', telefone:r.telefone || '', cpf: soDigitos(r.cpf),
+    validas.push({ linha: lin, numero, cliente:r.cliente, bairro, endereco:r.endereco || '', numero_casa:(r.numero_casa || '').slice(0, 20), referencia:r.referencia || '', telefone:r.telefone || '', cpf: soDigitos(r.cpf),
       mercadoria:r.mercadoria || 'Mercadoria', total, pago, parcela, data: data || HOJE });
   });
   return { validas, erros };
@@ -2424,7 +2623,7 @@ function confirmarImportacao(){
   r.validas.forEach(v => {
     let cl = (v.cpf && clientes.find(c => c.cpf === v.cpf)) || clientes.find(c => normalizaTxt(c.nome) === normalizaTxt(v.cliente) && (c.bairro || '') === v.bairro);
     if(!cl){
-      cl = { id: 'cl' + (clientes.length + 1), nome: v.cliente, endereco: v.endereco, bairro: v.bairro, referencia: v.referencia, telefone: v.telefone, ...(v.cpf ? { cpf: v.cpf } : {}) };
+      cl = { id: 'cl' + (clientes.length + 1), nome: v.cliente, endereco: v.endereco, numeroCasa: v.numero_casa, bairro: v.bairro, referencia: v.referencia, telefone: v.telefone, ...(v.cpf ? { cpf: v.cpf } : {}) };
       clientes.push(cl); novos++;
     } else {
       if(v.telefone && !cl.telefone) cl.telefone = v.telefone;
@@ -2445,9 +2644,9 @@ function confirmarImportacao(){
 function baixarModeloImportacao(){
   const b = todosBairros()[0] || 'Centro';
   baixarArquivo('modelo-importacao-fichas.csv', csvTexto(
-    ['numero','cliente','bairro','endereco','referencia','telefone','cpf','mercadoria','valor_total','valor_pago','parcela','proxima_cobranca'],
-    [['000620','Maria da Silva', b, 'Rua A, 10', 'portão azul', '91999990000', '', 'Panelas', '340,00', '85,00', '85,00', '15/11/2026'],
-     ['000621','João Pereira', b, 'Av. B, 200', '', '', '', 'Roupas', '480,00', '0', '120,00', '16/11/2026']]), 'text/csv;charset=utf-8');
+    ['numero','cliente','bairro','endereco','numero_casa','referencia','telefone','cpf','mercadoria','valor_total','valor_pago','parcela','proxima_cobranca'],
+    [['000620','Maria da Silva', b, 'Rua A', '10', 'portão azul', '91999990000', '', 'Panelas', '340,00', '85,00', '85,00', dataBR(HOJE)],
+     ['000621','João Pereira', b, 'Av. B', '200', '', '', '', 'Roupas', '480,00', '0', '120,00', dataBR(HOJE)]]), 'text/csv;charset=utf-8');
 }
 
 // ---------- Backup e exportação ----------
@@ -2482,9 +2681,9 @@ function restaurarBackup(){
 }
 function exportarTabela(tipo){
   if(tipo === 'fichas'){
-    baixarArquivo('fichas.csv', csvTexto(['numero','cliente','telefone','bairro','endereco','cobrador','mercadoria','valor_total','valor_pago','restante','parcela','proxima_cobranca','situacao'],
+    baixarArquivo('fichas.csv', csvTexto(['numero','cliente','telefone','bairro','endereco','numero_casa','cobrador','mercadoria','valor_total','valor_pago','restante','parcela','proxima_cobranca','situacao'],
       fichas.map(f => { const c = clientes.find(x => x.id===f.clienteId) || {}, d = dataProxima(f);
-        return [f.numero, c.nome, c.telefone, c.bairro, c.endereco, cobradorNome(f.cobradorId), f.mercadoria, numBR(f.valorTotal), numBR(f.valorPago),
+        return [f.numero, c.nome, c.telefone, c.bairro, c.endereco, c.numeroCasa, cobradorNome(f.cobradorId), f.mercadoria, numBR(f.valorTotal), numBR(f.valorPago),
           numBR(f.valorTotal - f.valorPago), numBR(f.parcela), d ? dataBR(d) : '', f.cancelada ? 'cancelada' : f.quitada ? 'quitada' : diasAtraso(f) > 0 ? 'atrasada' : 'em cobrança']; })),
       'text/csv;charset=utf-8');
   } else if(tipo === 'pagamentos'){
@@ -2492,8 +2691,8 @@ function exportarTabela(tipo){
       fichas.flatMap(f => (f.pagamentos || []).map(p => [dataBR(p.data), f.numero, clienteNome(f.clienteId), cobradorNome(f.cobradorId), formaTxt(p.forma), numBR(p.valor), p.inicial ? 'anterior ao sistema' : (p.corrigido ? 'corrigido' : '')]))),
       'text/csv;charset=utf-8');
   } else {
-    baixarArquivo('clientes.csv', csvTexto(['nome','cpf','telefone','bairro','endereco','referencia','fichas'],
-      clientes.map(c => [c.nome, mascaraCPF(c.cpf), c.telefone, c.bairro, c.endereco, c.referencia, fichas.filter(f => f.clienteId===c.id).length])),
+    baixarArquivo('clientes.csv', csvTexto(['nome','cpf','telefone','bairro','endereco','numero_casa','referencia','fichas'],
+      clientes.map(c => [c.nome, mascaraCPF(c.cpf), c.telefone, c.bairro, c.endereco, c.numeroCasa, c.referencia, fichas.filter(f => f.clienteId===c.id).length])),
       'text/csv;charset=utf-8');
   }
 }
@@ -2619,7 +2818,7 @@ trazerParaHoje = function(numero){
 const _salvarEdicao = salvarEdicao;
 salvarEdicao = function(numero){
   const f = fichas.find(x => x.numero===numero), c = clientes.find(x => x.id===f.clienteId) || {};
-  const foto = () => ({ 'Endereço': c.endereco, 'Referência': c.referencia, 'Telefone': c.telefone, 'CPF': c.cpf, 'Mercadoria': f.mercadoria,
+  const foto = () => ({ 'Endereço': c.endereco, 'Nº da casa': c.numeroCasa, 'Referência': c.referencia, 'Telefone': c.telefone, 'CPF': c.cpf, 'Mercadoria': f.mercadoria,
     'Valor total': formatBRL(f.valorTotal), 'Parcela': formatBRL(f.parcela), 'Cobrador': cobradorNome(f.cobradorId) });
   const a = foto();
   const cpfNovo = soDigitos(document.getElementById('ed-cpf')?.value);
@@ -2639,8 +2838,6 @@ salvarEdicao = function(numero){
 // ============================================================
 // Inicialização
 // ============================================================
-populateCobradorSelect();
-renderCobrador();
 document.getElementById('chave-empresa').textContent = EMPRESA.chave;
 
 // Para o protótipo abrir direto, sem tela de entrada. Troque para true para exigir chave, usuário e senha.
@@ -2649,6 +2846,691 @@ if(!EXIGIR_LOGIN){
   sessao = { papel: 'admin' };
   document.getElementById('tela-login').style.display = 'none';
 }
+</script>
+<script>
+// ============================================================
+// Interface (versão 3): página inicial, menu lateral, organizar rota,
+// gráficos, Meu perfil, Minha empresa, tema da empresa e janelas
+// ============================================================
+const UI = { pagina: 'home', papel: 'admin' };
+let PERFIL = { id: null, nome: 'Administrador', usuario: 'admin', telefone: '', papel: 'admin' };
+let FOTOS = {};                       // id do usuário -> foto (data:image/...)
+EMPRESA.cor = EMPRESA.cor || '';
+EMPRESA.logo = EMPRESA.logo || '';
+EMPRESA.marcaDagua = !!EMPRESA.marcaDagua;
+const COR_PADRAO = '#23714F';
+
+// ---------- avisos e janelas ----------
+function toast(msg, ok){
+  let t = document.getElementById('rc-toast');
+  if(!t){ t = document.createElement('div'); t.id = 'rc-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.style.background = ok ? 'var(--ok)' : 'var(--bad)';
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._t); t._t = setTimeout(() => { t.style.display = 'none'; }, ok ? 3500 : 8000);
+}
+function abrirModal(o){
+  const fundo = document.createElement('div');
+  fundo.className = 'modal-fundo';
+  fundo.innerHTML = `<div class="modal${o.largo ? ' largo' : ''}" role="dialog" aria-modal="true">
+    <div class="modal-cab"><h3>${o.titulo || ''}</h3><button class="btn-icone" data-x aria-label="Fechar" style="width:36px;height:36px;"><svg class="ico sm"><use href="#i-x"/></svg></button></div>
+    <div class="modal-corpo">${o.corpo || ''}</div>
+    ${o.botoes && o.botoes.length ? '<div class="modal-rodape"></div>' : ''}</div>`;
+  const m = { el: fundo, fechar(){ fundo.remove(); document.removeEventListener('keydown', esc); if(o.aoFechar) o.aoFechar(); } };
+  const esc = e => { if(e.key === 'Escape') m.fechar(); };
+  document.addEventListener('keydown', esc);
+  fundo.querySelector('[data-x]').onclick = () => m.fechar();
+  fundo.addEventListener('mousedown', e => { if(e.target === fundo && !o.naoFecharFora) m.fechar(); });
+  const rod = fundo.querySelector('.modal-rodape');
+  (o.botoes || []).forEach(b => {
+    const bt = document.createElement('button');
+    bt.className = 'btn ' + (b.cls || 'ghost'); bt.innerHTML = b.txt;
+    bt.onclick = () => b.acao(m, bt);
+    rod.appendChild(bt);
+  });
+  document.body.appendChild(fundo);
+  const foco = fundo.querySelector('.modal-corpo input, .modal-corpo select');
+  if(foco) setTimeout(() => foco.focus(), 50);
+  return m;
+}
+function confirmar(msg, o){
+  o = o || {};
+  return new Promise(res => {
+    let resp = false;
+    abrirModal({ titulo: o.titulo || 'Confirmar', corpo: `<p>${msg}</p>`, aoFechar: () => res(resp),
+      botoes: [ { txt: 'Cancelar', acao: m => m.fechar() },
+                { txt: o.ok || 'Confirmar', cls: o.perigo ? 'perigo' : 'primary', acao: m => { resp = true; m.fechar(); } } ] });
+  });
+}
+function carregando(sim){ document.body.classList.toggle('carregando', !!sim); }
+
+// ---------- menu ----------
+const MENU_ADMIN = [
+  { g: null, itens: [ { id: 'home', t: 'Início', i: 'casa' } ] },
+  { g: 'Dia a dia', itens: [
+    { id: 'conferencia', t: 'Conferência do dia', i: 'conferir', d: 'Confira o que cada cobrador enviou e dê o OK' },
+    { id: 'lancar', t: 'Lançar ficha', i: 'ficha-mais', d: 'Cadastre uma venda nova' },
+    { id: 'cobradores', t: 'Cobradores', i: 'pessoas', d: 'Equipe, fichas de hoje e cadastro' },
+    { id: 'rotas', t: 'Rotas por bairro', i: 'mapa', d: 'Quais bairros cada cobrador atende' } ] },
+  { g: 'Fichas', itens: [
+    { id: 'fichas', t: 'Fichas e pagamentos', i: 'ficha', d: 'Buscar, editar e ver o histórico' },
+    { id: 'atrasadas', t: 'Atrasadas', i: 'alerta', d: 'Cobranças vencidas' },
+    { id: 'arquivo', t: 'Fichas encerradas', i: 'arquivo', d: 'Quitadas e canceladas' },
+    { id: 'numeracao', t: 'Numeração', i: 'hash', d: 'Números de ficha usados e faltando' } ] },
+  { g: 'Dinheiro e relatórios', itens: [
+    { id: 'vales', t: 'Vales', i: 'carteira', d: 'Adiantamentos dos cobradores' },
+    { id: 'mensal', t: 'Relatório do mês', i: 'grafico', d: 'Desempenho de cada cobrador' },
+    { id: 'historico', t: 'Cobrança por período', i: 'calendario', d: 'Dia, semana ou mês' } ] },
+  { g: 'Sistema', itens: [
+    { id: 'registro', t: 'Registro de alterações', i: 'relogio', d: 'Quem fez o quê e quando' },
+    { id: 'dados', t: 'Importar e backup', i: 'upload', d: 'Planilhas e cópias de segurança' },
+    { id: 'empresa', t: 'Minha empresa', i: 'empresa', d: 'Nome, logo e cor do sistema' } ] },
+  { g: 'Minha conta', itens: [
+    { id: 'perfil', t: 'Meu perfil', i: 'usuario', d: 'Nome, telefone e foto' },
+    { id: 'senha', t: 'Mudar senha', i: 'chave', d: 'Troque sua senha de acesso', acao: () => abrirMinhaSenha() },
+    { id: 'sair', t: 'Sair', i: 'sair', d: 'Encerrar a sessão', acao: () => sair() } ] }
+];
+const MENU_COBRADOR = [
+  { g: null, itens: [
+    { id: 'home', t: 'Início', i: 'casa' },
+    { id: 'rota', t: 'Rota de hoje', i: 'rota', d: 'Fichas para cobrar hoje' },
+    { id: 'organizar', t: 'Organizar rota', i: 'ordem', d: 'Ponha as fichas na ordem do seu caminho', acao: () => abrirOrganizador() } ] },
+  { g: 'Minha conta', itens: [
+    { id: 'perfil', t: 'Meu perfil', i: 'usuario', d: 'Nome, telefone e foto' },
+    { id: 'senha', t: 'Mudar senha', i: 'chave', d: 'Troque sua senha de acesso', acao: () => abrirMinhaSenha() },
+    { id: 'sair', t: 'Sair', i: 'sair', d: 'Encerrar a sessão', acao: () => sair() } ] }
+];
+const TITULOS_EXTRA = { cobhist: 'Histórico do cobrador' };
+const menuAtual = () => UI.papel === 'cobrador' ? MENU_COBRADOR : MENU_ADMIN;
+const itensMenu = () => menuAtual().flatMap(g => g.itens);
+const ico = (n, cls) => `<svg class="ico${cls ? ' ' + cls : ''}"><use href="#i-${n}"/></svg>`;
+function contadores(){
+  if(UI.papel !== 'admin') return {};
+  const aguardando = cobradoresAtivos().filter(c => enviosDia[c.id] && !confirmacoesAdmin[c.id]).length;
+  return { conferencia: aguardando };
+}
+function montarMenu(){
+  const nav = document.getElementById('sb-nav');
+  if(!nav) return;
+  const q = contadores();
+  const ativo = UI.pagina === 'cobhist' ? 'cobradores' : UI.pagina;
+  nav.innerHTML = menuAtual().map(g => (g.g ? `<div class="sb-grupo">${g.g}</div>` : '') + g.itens.map(it =>
+    `<button class="sb-item${it.id === ativo ? ' ativo' : ''}" onclick="clicarMenu('${it.id}')">${ico(it.i)}<span>${it.t}</span>${q[it.id] ? `<span class="qtd">${q[it.id]}</span>` : ''}</button>`).join('')).join('');
+}
+function clicarMenu(id){
+  const it = itensMenu().find(x => x.id === id);
+  fecharMenu();
+  if(it && it.acao){ it.acao(); return; }
+  irPara(id);
+}
+function abrirMenu(){ document.body.classList.add('menu-aberto'); }
+function fecharMenu(){ document.body.classList.remove('menu-aberto'); }
+
+const PAINEIS_ADMIN = ['conferencia', 'lancar', 'cobradores', 'rotas', 'vales', 'mensal', 'arquivo', 'historico', 'fichas', 'atrasadas', 'numeracao', 'registro', 'dados', 'cobhist'];
+function irPara(p){
+  if(UI.papel === 'cobrador' && (PAINEIS_ADMIN.includes(p) || p === 'empresa')) p = 'home';
+  if(UI.pagina === 'empresa' && p !== 'empresa') document.documentElement.style.setProperty('--brand', corSegura(EMPRESA.cor || COR_PADRAO));
+  UI.pagina = p;
+  const view = PAINEIS_ADMIN.includes(p) ? 'admin' : (p === 'rota' ? 'cobrador' : p);
+  document.querySelectorAll('main > .view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+  if(view === 'admin') document.querySelectorAll('.admin-panel').forEach(x => x.classList.toggle('active', x.id === 'admin-' + p));
+  const it = itensMenu().find(x => x.id === p);
+  document.getElementById('titulo-pagina').textContent = TITULOS_EXTRA[p] || (it ? it.t : 'Rota Certa');
+  document.body.classList.toggle('fora-inicio', p !== 'home');
+  if(p === 'home') renderHome();
+  if(p === 'perfil') renderPerfil();
+  if(p === 'empresa') renderEmpresa();
+  if(p === 'rota') renderCobrador();
+  if(p === 'lancar') populateBairroSelect();
+  montarMenu(); fecharMenu();
+  window.scrollTo(0, 0);
+}
+setRole = function(role){
+  UI.papel = role === 'cobrador' ? 'cobrador' : 'admin';
+  document.getElementById('btn-role-cobrador').classList.toggle('ativo', UI.papel === 'cobrador');
+  document.getElementById('btn-role-admin').classList.toggle('ativo', UI.papel === 'admin');
+  if(!(window.RC && RC.real)){
+    if(sessao && sessao.papel === 'cobrador'){
+      const c = cobradores.find(x => x.id === sessao.id) || {};
+      PERFIL = { id: c.id, nome: c.nome, usuario: c.login, telefone: c.telefone || '', papel: 'cobrador' };
+    } else PERFIL = Object.assign({ id: 'admin', nome: 'Administrador', usuario: 'admin', telefone: '', papel: 'admin' }, PERFIL.papel === 'admin' ? PERFIL : {});
+  }
+  atualizarUsuario();
+  if(UI.papel === 'admin') renderAdmin();
+  irPara('home');
+};
+
+// ---------- usuário, foto e tema ----------
+function iniciaisDe(nome){ return String(nome || '?').split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '?'; }
+function avatarHTML(c, cls){
+  const foto = c && FOTOS[c.id];
+  return foto ? `<div class="avatar${cls ? ' ' + cls : ''}" style="background-image:url('${foto}')"></div>`
+    : `<div class="avatar${cls ? ' ' + cls : ''}">${h(iniciaisDe(c && c.nome))}</div>`;
+}
+function atualizarUsuario(){
+  const av = document.getElementById('sb-avatar');
+  const foto = FOTOS[PERFIL.id];
+  av.style.backgroundImage = foto ? `url('${foto}')` : '';
+  av.textContent = foto ? '' : iniciaisDe(PERFIL.nome);
+  document.getElementById('sb-nome').textContent = PERFIL.nome || '—';
+  document.getElementById('sb-papel').textContent = (PERFIL.papel === 'cobrador' ? 'Cobrador' : 'Administrador') + (PERFIL.usuario ? ' · ' + PERFIL.usuario : '');
+}
+function luminancia(hex){
+  const v = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255).map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+}
+// escurece cores muito claras para o texto branco continuar legível nos botões
+function corSegura(hex){
+  if(!/^#[0-9a-f]{6}$/i.test(hex || '')) return COR_PADRAO;
+  let rgb = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16)), n = 0;
+  const toHex = a => '#' + a.map(x => Math.round(x).toString(16).padStart(2, '0')).join('');
+  while(luminancia(toHex(rgb)) > 0.22 && n < 20){ rgb = rgb.map(x => x * 0.9); n++; }
+  return toHex(rgb);
+}
+function logoHTML(){ return EMPRESA.logo ? `<img src="${EMPRESA.logo}" alt="">` : h(iniciaisDe(EMPRESA.nome || 'Rota Certa')); }
+function aplicarTema(){
+  const cor = corSegura(EMPRESA.cor || COR_PADRAO);
+  document.documentElement.style.setProperty('--brand', cor);
+  const meta = document.querySelector('meta[name=theme-color]'); if(meta) meta.content = cor;
+  ['sb-logo', 'login-logo'].forEach(id => { const e = document.getElementById(id); if(e) e.innerHTML = logoHTML(); });
+  document.getElementById('sb-empresa').textContent = EMPRESA.nome || 'Rota Certa';
+  const md = document.getElementById('marca-dagua');
+  md.innerHTML = (EMPRESA.marcaDagua && EMPRESA.logo) ? `<img src="${EMPRESA.logo}" alt="">` : '<span>Rota Certa</span>';
+  document.title = (EMPRESA.nome && EMPRESA.nome !== 'Rota Certa' ? EMPRESA.nome + ' — ' : '') + 'Rota Certa';
+  try {
+    localStorage.setItem('rotacerta_tema', JSON.stringify({ nome: EMPRESA.nome, cor: EMPRESA.cor, logo: (EMPRESA.logo || '').length < 150000 ? EMPRESA.logo : '' }));
+  } catch(e){}
+}
+function temaDoLogin(){
+  try {
+    const t = JSON.parse(localStorage.getItem('rotacerta_tema') || 'null');
+    if(!t) return;
+    document.documentElement.style.setProperty('--brand', corSegura(t.cor || COR_PADRAO));
+    const ll = document.getElementById('login-logo');
+    ll.innerHTML = t.logo ? `<img src="${t.logo}" alt="">` : h(iniciaisDe(t.nome || 'Rota Certa'));
+    if(t.nome) document.getElementById('login-titulo').textContent = t.nome;
+  } catch(e){}
+}
+// reduz a imagem no próprio aparelho antes de salvar
+function lerImagem(arquivo, max, quadrada, limite){
+  return new Promise((ok, falha) => {
+    if(!arquivo || !/^image\//.test(arquivo.type)) return falha(new Error('Escolha um arquivo de imagem (foto, PNG ou JPG).'));
+    const url = URL.createObjectURL(arquivo), img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let lado = max, out = '';
+      for(let tent = 0; tent < 6; tent++){
+        let sx = 0, sy = 0, sw = img.width, sh = img.height;
+        if(quadrada){ const m = Math.min(sw, sh); sx = (sw - m) / 2; sy = (sh - m) / 2; sw = sh = m; }
+        const esc = Math.min(1, lado / Math.max(sw, sh));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(sw * esc)); cv.height = Math.max(1, Math.round(sh * esc));
+        const cx = cv.getContext('2d');
+        const transparente = !quadrada && arquivo.type !== 'image/jpeg';
+        if(!transparente){ cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); }
+        cx.drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+        if(transparente){ out = cv.toDataURL('image/webp', 0.9); if(!/^data:image\/webp/.test(out)) out = cv.toDataURL('image/png'); }
+        else out = cv.toDataURL('image/jpeg', 0.85);
+        if(out.length <= limite) return ok(out);
+        lado = Math.round(lado * 0.75);
+      }
+      falha(new Error('A imagem ficou grande demais. Tente outra.'));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error('Não foi possível abrir essa imagem.')); };
+    img.src = url;
+  });
+}
+
+// ---------- Meu perfil ----------
+let fotoPendente;   // undefined = sem mudança, '' = remover, data:... = nova
+function renderPerfil(){
+  fotoPendente = undefined;
+  const v = document.getElementById('view-perfil');
+  v.innerHTML = `<div class="card-block" style="max-width:760px;">
+    <div class="perfil-topo">
+      <div class="avatar grande" id="pf-avatar"></div>
+      <div style="flex:1;min-width:200px;">
+        <h2 id="pf-titulo">${h(PERFIL.nome)}</h2>
+        <p style="margin:4px 0 0;color:var(--ink-soft);font-size:.9rem;">${PERFIL.papel === 'cobrador' ? 'Cobrador' : 'Administrador'} · usuário <b class="mono">${h(PERFIL.usuario || '')}</b> · ${h(EMPRESA.nome || '')}</p>
+        <div class="acoes" style="margin-bottom:0;">
+          <label class="btn ghost pequeno">${ico('usuario', 'sm')} Trocar foto<input type="file" accept="image/*" hidden onchange="escolherFoto(this)"></label>
+          <button class="btn ghost pequeno perigo" onclick="removerFoto()">Remover foto</button>
+        </div>
+      </div>
+    </div>
+    <div class="grade-form">
+      <label class="campo c6">Nome<input type="text" id="pf-nome" value="${h(PERFIL.nome)}" maxlength="80"></label>
+      <label class="campo c6">Telefone / WhatsApp<input type="tel" id="pf-tel" value="${h(PERFIL.telefone || '')}" maxlength="30" placeholder="(91) 99999-0000"></label>
+    </div>
+    <p class="erro-txt" id="pf-erro"></p>
+    <div class="acoes" style="margin-bottom:0;">
+      <button class="btn primary" id="pf-salvar" onclick="salvarPerfil()">${ico('check', 'sm')} Salvar perfil</button>
+      <button class="btn ghost" onclick="abrirMinhaSenha()">${ico('chave', 'sm')} Mudar senha</button>
+    </div></div>`;
+  mostrarFotoPerfil(FOTOS[PERFIL.id]);
+}
+function mostrarFotoPerfil(f){
+  const a = document.getElementById('pf-avatar');
+  if(!a) return;
+  a.style.backgroundImage = f ? `url('${f}')` : '';
+  a.textContent = f ? '' : iniciaisDe(PERFIL.nome);
+}
+async function escolherFoto(inp){
+  try { fotoPendente = await lerImagem(inp.files[0], 256, true, 250000); mostrarFotoPerfil(fotoPendente); toast('Foto pronta. Toque em "Salvar perfil" para guardar.', true); }
+  catch(e){ toast(e.message); }
+  inp.value = '';
+}
+function removerFoto(){ fotoPendente = ''; mostrarFotoPerfil(''); }
+// versão local (demonstração); a camada online troca por uma chamada ao banco
+async function aplicarPerfil(d){
+  PERFIL.nome = d.nome; PERFIL.telefone = d.telefone;
+  if(d.foto !== undefined){ if(d.foto) FOTOS[PERFIL.id] = d.foto; else delete FOTOS[PERFIL.id]; }
+  const c = cobradores.find(x => x.id === PERFIL.id);
+  if(c){ c.nome = d.nome; c.telefone = d.telefone; }
+}
+async function salvarPerfil(){
+  const nome = document.getElementById('pf-nome').value.trim(), telefone = document.getElementById('pf-tel').value.trim();
+  const er = document.getElementById('pf-erro'), bt = document.getElementById('pf-salvar');
+  er.textContent = '';
+  if(!nome){ er.textContent = 'Informe o seu nome.'; return; }
+  bt.disabled = true;
+  try {
+    await aplicarPerfil({ nome, telefone, foto: fotoPendente });
+    fotoPendente = undefined;
+    atualizarUsuario(); renderPerfil();
+    if(UI.papel === 'admin') renderAdmin(); else renderCobrador();
+    toast('Perfil salvo.', true);
+  } catch(e){ er.textContent = e.message || String(e); }
+  finally { const b2 = document.getElementById('pf-salvar'); if(b2) b2.disabled = false; }
+}
+// troca de senha (no modo demonstração não há senha de verdade para trocar)
+function abrirMinhaSenha(){
+  abrirModal({ titulo: 'Mudar minha senha',
+    corpo: `<label class="campo">Nova senha<input type="password" id="ms-nova" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></label>
+      <label class="campo">Repita a nova senha<input type="password" id="ms-conf" autocomplete="new-password"></label><p class="erro-txt" id="ms-erro"></p>`,
+    botoes: [ { txt: 'Cancelar', acao: m => m.fechar() },
+      { txt: 'Salvar senha', cls: 'primary', acao: async (m, bt) => {
+        const a = document.getElementById('ms-nova').value, b = document.getElementById('ms-conf').value, er = document.getElementById('ms-erro');
+        if(a.length < 6){ er.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+        if(a !== b){ er.textContent = 'As duas senhas não são iguais.'; return; }
+        bt.disabled = true;
+        try { await aplicarNovaSenha(a); m.fechar(); toast('Senha alterada.', true); }
+        catch(e){ er.textContent = e.message || String(e); bt.disabled = false; }
+      } } ] });
+}
+async function aplicarNovaSenha(s){
+  const c = cobradores.find(x => x.id === PERFIL.id); if(c) c.senha = s;
+  if(PERFIL.papel === 'admin') EMPRESA.admin.senha = s;
+}
+
+// ---------- Minha empresa ----------
+const CORES = ['#23714F', '#1D5FA8', '#0F766E', '#6D3FB5', '#B23A48', '#B45309', '#374151'];
+let logoPendente, corPendente;
+function renderEmpresa(){
+  logoPendente = undefined; corPendente = EMPRESA.cor || COR_PADRAO;
+  const ativos = cobradoresAtivos().length, inc = EMPRESA.cobradoresIncluidos || 2;
+  document.getElementById('view-empresa').innerHTML = `<div class="card-block" style="max-width:820px;">
+    <h3>Identidade da empresa</h3>
+    <div class="grade-form">
+      <label class="campo c8">Nome da empresa (aparece no menu e nos recibos do WhatsApp)<input type="text" id="emp-nome" value="${h(EMPRESA.nome || '')}" maxlength="80"></label>
+      <label class="campo c4">Chave de acesso<input type="text" value="${h(EMPRESA.chave || '')}" disabled></label>
+    </div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px;">
+      <div class="logo-prev" id="emp-logo-prev"></div>
+      <div style="flex:1;min-width:220px;">
+        <b style="font-size:.9rem;">Logo</b>
+        <p style="font-size:.84rem;color:var(--ink-soft);margin:4px 0 10px;">Aparece no menu, na tela de entrada e, se quiser, como marca d'água. PNG com fundo transparente fica melhor; a imagem é reduzida automaticamente.</p>
+        <div class="acoes" style="margin:0;"><label class="btn ghost pequeno">${ico('upload', 'sm')} Escolher logo<input type="file" accept="image/*" hidden onchange="escolherLogo(this)"></label>
+        <button class="btn ghost pequeno perigo" onclick="removerLogo()">Remover logo</button></div>
+        <label class="linha-check"><input type="checkbox" id="emp-marca" ${EMPRESA.marcaDagua ? 'checked' : ''}> Usar a logo como marca d'água no fundo (no lugar do nome Rota Certa)</label>
+      </div>
+    </div>
+    <b style="font-size:.9rem;">Cor principal</b>
+    <div class="cores" style="margin:8px 0 6px;" id="emp-cores"></div>
+    <p style="font-size:.8rem;color:var(--ink-muted);margin:0 0 16px;">Cores muito claras são escurecidas automaticamente para o texto dos botões continuar legível.</p>
+    <p class="erro-txt" id="emp-erro"></p>
+    <div class="acoes" style="margin-bottom:0;"><button class="btn primary" id="emp-salvar" onclick="salvarEmpresa()">${ico('check', 'sm')} Salvar</button>
+      <button class="btn ghost" onclick="EMPRESA.cor=EMPRESA.cor;aplicarTema();renderEmpresa();">Desfazer</button></div>
+  </div>
+  <div class="card-block" style="max-width:820px;">
+    <h3>Plano</h3>
+    <p style="font-size:.9rem;margin:0;">Cobradores incluídos: <b>${inc}</b> · cobradores ativos agora: <b>${ativos}</b>${ativos > inc ? ` · <span class="badge wait">${ativos - inc} extra(s), cobrado(s) à parte</span>` : ''}</p>
+  </div>`;
+  desenharCores(); mostrarLogoPrev(EMPRESA.logo);
+}
+function desenharCores(){
+  const box = document.getElementById('emp-cores');
+  const atual = (corPendente || '').toLowerCase();
+  box.innerHTML = CORES.map(c => `<button class="cor-op${c.toLowerCase() === atual ? ' sel' : ''}" style="background:${c}" title="${c}" onclick="escolherCor('${c}')"></button>`).join('')
+    + `<input type="color" value="${/^#[0-9a-f]{6}$/i.test(corPendente) ? corPendente : COR_PADRAO}" oninput="escolherCor(this.value, true)" title="Outra cor">`;
+}
+function escolherCor(c, livre){
+  corPendente = c;
+  document.documentElement.style.setProperty('--brand', corSegura(c));
+  if(!livre) desenharCores();
+}
+function mostrarLogoPrev(l){
+  const p = document.getElementById('emp-logo-prev');
+  if(p) p.innerHTML = l ? `<img src="${l}" alt="Logo">` : 'Sem logo';
+}
+async function escolherLogo(inp){
+  try { logoPendente = await lerImagem(inp.files[0], 360, false, 400000); mostrarLogoPrev(logoPendente); }
+  catch(e){ toast(e.message); }
+  inp.value = '';
+}
+function removerLogo(){ logoPendente = ''; mostrarLogoPrev(''); }
+async function aplicarEmpresa(d){
+  EMPRESA.nome = d.nome; EMPRESA.cor = d.cor; EMPRESA.marcaDagua = d.marcaDagua;
+  if(d.logo !== undefined) EMPRESA.logo = d.logo;
+}
+async function salvarEmpresa(){
+  const nome = document.getElementById('emp-nome').value.trim(), er = document.getElementById('emp-erro'), bt = document.getElementById('emp-salvar');
+  er.textContent = '';
+  if(!nome){ er.textContent = 'Informe o nome da empresa.'; return; }
+  const marca = document.getElementById('emp-marca').checked;
+  if(marca && !(logoPendente || (logoPendente === undefined && EMPRESA.logo))){ er.textContent = "Para usar a marca d'água, escolha uma logo primeiro."; return; }
+  bt.disabled = true;
+  try {
+    await aplicarEmpresa({ nome, cor: corPendente === COR_PADRAO && !EMPRESA.cor ? '' : corPendente, logo: logoPendente, marcaDagua: marca });
+    aplicarTema(); renderEmpresa();
+    toast('Dados da empresa salvos.', true);
+  } catch(e){ er.textContent = e.message || String(e); }
+  finally { const b2 = document.getElementById('emp-salvar'); if(b2) b2.disabled = false; }
+}
+
+// ---------- Organizar a rota ----------
+let ORG = null;
+const fkey = f => f.id || f.numero;
+function abrirOrganizador(cobradorId){
+  cobradorId = cobradorId || (sessao && sessao.papel === 'cobrador' ? sessao.id : document.getElementById('select-cobrador').value);
+  const c = cobradores.find(x => x.id === cobradorId);
+  if(!c){ toast('Escolha um cobrador primeiro.'); return; }
+  ORG = { cobradorId, escopo: 'hoje', chaves: [], mudou: false };
+  const totalAtivas = fichas.filter(f => f.cobradorId === cobradorId && !f.quitada && !f.cancelada).length;
+  ORG.modal = abrirModal({ largo: true, naoFecharFora: true,
+    titulo: 'Organizar rota' + (sessao && sessao.papel === 'cobrador' ? '' : ' — ' + h(c.nome)),
+    corpo: `<p>Arraste pela alça <b>⠿</b>, use as setas ou digite a posição para colocar as fichas na ordem do seu caminho. A ordem fica salva e vale para os próximos dias.</p>
+      <div class="barra-lista" style="margin-bottom:12px;">
+        <div class="filtros" id="org-escopo">
+          <button class="ativo" data-e="hoje" onclick="orgEscopo('hoje')">Fichas de hoje</button>
+          <button data-e="todas" onclick="orgEscopo('todas')">Todas as fichas ativas (${totalAtivas})</button>
+        </div>
+        <button class="btn ghost pequeno" onclick="orgPorBairro()">${ico('pino', 'sm')} Ordenar por bairro e rua</button>
+      </div>
+      <ul class="org-lista" id="org-lista"></ul>`,
+    botoes: [ { txt: 'Cancelar', acao: m => m.fechar() }, { txt: ico('check', 'sm') + ' Salvar ordem', cls: 'primary', acao: (m, bt) => salvarOrdem(bt) } ],
+    aoFechar: () => { ORG = null; } });
+  orgEscopo('hoje', true);
+}
+function orgEscopo(e, inicio){
+  if(!ORG) return;
+  if(ORG.mudou && !inicio && !window.confirm('Trocar a lista agora desfaz a ordem que você mexeu e ainda não salvou. Continuar?')) return;
+  ORG.escopo = e; ORG.mudou = false;
+  document.querySelectorAll('#org-escopo button').forEach(b => b.classList.toggle('ativo', b.dataset.e === e));
+  const lista = e === 'hoje' ? fichasDoDia(ORG.cobradorId) : ordenarPorRota(fichas.filter(f => f.cobradorId === ORG.cobradorId && !f.quitada && !f.cancelada));
+  ORG.chaves = lista.map(fkey);
+  desenharOrg();
+}
+const fichaPorChave = k => fichas.find(f => fkey(f) === k);
+function desenharOrg(){
+  const ul = document.getElementById('org-lista');
+  if(!ul) return;
+  const n = ORG.chaves.length;
+  ul.innerHTML = ORG.chaves.map((k, i) => {
+    const f = fichaPorChave(k); if(!f) return '';
+    const c = clientes.find(x => x.id === f.clienteId) || {};
+    return `<li class="org-item" data-k="${h(k)}">
+      <span class="alca" title="Arraste para mudar a posição">${ico('alca')}</span>
+      <span class="num">${i + 1}</span>
+      <div class="txt"><b>${h(c.nome || '—')}</b><span>${h(enderecoCompleto(c) || 'Sem endereço')}${c.bairro ? ' · ' + h(c.bairro) : ''} · ficha ${f.numero}${ORG.escopo === 'todas' && f.vencimento ? ' · ' + dataBR(dataProxima(f) || f.vencimento) : ''}</span></div>
+      <input type="number" class="ir" min="1" max="${n}" placeholder="nº" title="Mover para a posição" onchange="orgMoverPara('${h(k)}', this.value)">
+      <div class="setas"><button title="Subir" onclick="orgMover('${h(k)}', -1)" ${i === 0 ? 'disabled' : ''}>${ico('cima', 'sm')}</button><button title="Descer" onclick="orgMover('${h(k)}', 1)" ${i === n - 1 ? 'disabled' : ''}>${ico('baixo', 'sm')}</button></div>
+    </li>`;
+  }).join('') || '<li style="color:var(--ink-soft);padding:12px 0;">Nenhuma ficha nesta lista.</li>';
+  ul.querySelectorAll('.alca').forEach(a => a.addEventListener('pointerdown', orgArrastar));
+}
+function orgMover(k, d){
+  const i = ORG.chaves.indexOf(k), j = i + d;
+  if(i < 0 || j < 0 || j >= ORG.chaves.length) return;
+  ORG.chaves.splice(i, 1); ORG.chaves.splice(j, 0, k); ORG.mudou = true;
+  desenharOrg();
+  const li = document.querySelector(`.org-item[data-k="${CSS.escape(k)}"]`); if(li) li.scrollIntoView({ block: 'nearest' });
+}
+function orgMoverPara(k, pos){
+  pos = parseInt(pos, 10);
+  if(!(pos >= 1)) return;
+  const i = ORG.chaves.indexOf(k); if(i < 0) return;
+  ORG.chaves.splice(i, 1); ORG.chaves.splice(Math.min(pos, ORG.chaves.length + 1) - 1, 0, k); ORG.mudou = true;
+  desenharOrg();
+  const li = document.querySelector(`.org-item[data-k="${CSS.escape(k)}"]`);
+  if(li){ li.scrollIntoView({ block: 'center' }); li.classList.add('arrastando'); setTimeout(() => li.classList.remove('arrastando'), 700); }
+}
+function orgPorBairro(){
+  const num = s => { const m = String(s || '').match(/\d+/); return m ? parseInt(m[0], 10) : 1e9; };
+  const chave = k => { const f = fichaPorChave(k), c = clientes.find(x => x.id === f.clienteId) || {}; return [normalizaTxt(c.bairro), normalizaTxt(c.endereco), num(c.numeroCasa)]; };
+  ORG.chaves.sort((a, b) => { const x = chave(a), y = chave(b); return x[0].localeCompare(y[0]) || x[1].localeCompare(y[1]) || x[2] - y[2]; });
+  ORG.mudou = true; desenharOrg();
+}
+// arrastar com o dedo ou o mouse (pela alça)
+function orgArrastar(ev){
+  const li = ev.currentTarget.closest('.org-item'), ul = li.parentElement, corpo = li.closest('.modal-corpo');
+  ev.preventDefault();
+  try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch(e){}
+  li.classList.add('arrastando');
+  let ultimoY = ev.clientY, rolar = null;
+  const mover = e => {
+    ultimoY = e.clientY;
+    const irmaos = [...ul.children].filter(x => x !== li);
+    let antes = null;
+    for(const x of irmaos){ const r = x.getBoundingClientRect(); if(e.clientY < r.top + r.height / 2){ antes = x; break; } }
+    if(antes){ if(li.nextSibling !== antes) ul.insertBefore(li, antes); } else if(ul.lastChild !== li) ul.appendChild(li);
+  };
+  const auto = () => {
+    const r = corpo.getBoundingClientRect();
+    if(ultimoY < r.top + 50) corpo.scrollTop -= 12; else if(ultimoY > r.bottom - 50) corpo.scrollTop += 12;
+    rolar = requestAnimationFrame(auto);
+  };
+  rolar = requestAnimationFrame(auto);
+  const fim = () => {
+    cancelAnimationFrame(rolar);
+    document.removeEventListener('pointermove', mover); document.removeEventListener('pointerup', fim); document.removeEventListener('pointercancel', fim);
+    li.classList.remove('arrastando');
+    const novas = [...ul.querySelectorAll('.org-item')].map(x => x.dataset.k);
+    if(novas.join('|') !== ORG.chaves.join('|')){ ORG.chaves = novas; ORG.mudou = true; }
+    desenharOrg();
+  };
+  document.addEventListener('pointermove', mover); document.addEventListener('pointerup', fim); document.addEventListener('pointercancel', fim);
+}
+// redistribui entre as fichas escolhidas as posições que elas já ocupavam (igual ao banco)
+function ordenarLocal(cobradorId, chaves){
+  const lista = chaves.map(fichaPorChave).filter(Boolean);
+  let max = fichas.filter(f => f.cobradorId === cobradorId).reduce((m, f) => Math.max(m, f.ordem || 0), 0);
+  const vals = lista.map(f => (f.ordem == null) ? ++max : f.ordem).sort((a, b) => a - b);
+  lista.forEach((f, i) => { f.ordem = vals[i]; });
+  return lista;
+}
+async function aplicarOrdemRota(cobradorId, chaves){
+  ordenarLocal(cobradorId, chaves);
+  registrar('Ordem da rota', h(cobradorNome(cobradorId)) + ' · ' + chaves.length + ' ficha(s)');
+}
+async function salvarOrdem(bt){
+  if(!ORG) return;
+  const { cobradorId, chaves, modal } = ORG;
+  bt.disabled = true;
+  try {
+    await aplicarOrdemRota(cobradorId, chaves);
+    modal.fechar();
+    renderCobrador(); if(UI.papel === 'admin') renderCobradores();
+    toast('Ordem da rota salva.', true);
+  } catch(e){ toast(e.message || String(e)); bt.disabled = false; }
+}
+
+// ---------- gráficos (SVG simples, com dica ao passar o dedo/mouse) ----------
+const moedaCurta = v => v >= 1000 ? 'R$ ' + (v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil' : 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+function escalaBonita(max){
+  if(max <= 0) return [0, 1];
+  const p = Math.pow(10, Math.floor(Math.log10(max))), n = max / p;
+  const passo = (n <= 1.5 ? 0.5 : n <= 3 ? 1 : n <= 6 ? 2 : 5) * p;
+  return [Math.ceil(max / passo) * passo, passo];
+}
+function colunaPath(x, y, w, base, r){
+  const hgt = base - y; if(hgt <= 0) return '';
+  r = Math.min(r, w / 2, hgt);
+  return `M${x},${base}V${y + r}a${r},${r} 0 0 1 ${r},${-r}H${x + w - r}a${r},${r} 0 0 1 ${r},${r}V${base}Z`;
+}
+function graficoColunas(el, dados){
+  const W = Math.max(280, el.clientWidth), H = 200, ml = 54, mr = 6, mt = 10, mb = 24;
+  const max = Math.max(0, ...dados.map(d => d.v));
+  if(!max){ el.innerHTML = '<div class="vazio">Ainda não há pagamentos neste período.</div>'; return; }
+  const [topo, passo] = escalaBonita(max), base = H - mb, alt = base - mt;
+  const passoX = (W - ml - mr) / dados.length, bw = Math.max(4, Math.min(30, passoX * 0.62));
+  const cada = passoX < 26 ? Math.ceil(26 / passoX) : 1;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img">`;
+  for(let v = 0; v <= topo + 1e-9; v += passo){
+    const y = base - v / topo * alt;
+    s += `<line class="grade" x1="${ml}" x2="${W - mr}" y1="${y}" y2="${y}"/><text class="eixo" x="${ml - 8}" y="${y + 4}" text-anchor="end">${moedaCurta(v)}</text>`;
+  }
+  dados.forEach((d, i) => {
+    const cx = ml + passoX * i + passoX / 2, x = cx - bw / 2, y = base - d.v / topo * alt;
+    s += `<rect class="alvo" x="${ml + passoX * i}" y="${mt}" width="${passoX}" height="${alt}" fill="transparent" data-dica="${h(d.dica)}"/>`;
+    s += `<path class="barra${d.destaque ? ' hoje' : ''}" d="${colunaPath(x, y, bw, base, 4)}" data-dica="${h(d.dica)}"/>`;
+    if(i % cada === 0 || i === dados.length - 1) s += `<text class="eixo" x="${cx}" y="${H - 6}" text-anchor="middle">${h(d.r)}</text>`;
+  });
+  el.innerHTML = s + '</svg>';
+}
+function graficoBarras(el, dados){
+  if(!dados.length || !dados.some(d => d.v > 0)){ el.innerHTML = '<div class="vazio">Ainda não há pagamentos neste mês.</div>'; return; }
+  const W = Math.max(280, el.clientWidth), lin = 34, rot = Math.min(150, W * 0.34), mv = 86;
+  const H = dados.length * lin + 4, max = Math.max(...dados.map(d => d.v));
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img">`;
+  dados.forEach((d, i) => {
+    const y = i * lin + 6, bh = 18, w = Math.max(d.v > 0 ? 3 : 0, (W - rot - mv) * d.v / max);
+    const nome = d.r.length > 20 ? d.r.slice(0, 19) + '…' : d.r;
+    s += `<rect class="alvo" x="0" y="${y - 6}" width="${W}" height="${lin}" fill="transparent" data-dica="${h(d.dica)}"/>`;
+    s += `<text class="rot-barra" x="0" y="${y + 13}">${h(nome)}</text>`;
+    if(w > 0) s += `<path class="barra" d="M${rot},${y}H${rot + w - Math.min(4, w)}a${Math.min(4, w)},${Math.min(4, w)} 0 0 1 ${Math.min(4, w)},${Math.min(4, w)}V${y + bh - Math.min(4, w)}a${Math.min(4, w)},${Math.min(4, w)} 0 0 1 ${-Math.min(4, w)},${Math.min(4, w)}H${rot}Z" data-dica="${h(d.dica)}"/>`;
+    s += `<text class="val-barra" x="${rot + w + 6}" y="${y + 13}">${moedaCurta(d.v)}</text>`;
+  });
+  el.innerHTML = s + '</svg>';
+}
+(function dicas(){
+  const d = document.createElement('div'); d.className = 'dica'; document.body.appendChild(d);
+  const mostrar = e => {
+    const t = e.target.closest && e.target.closest('[data-dica]');
+    if(!t){ d.style.display = 'none'; return; }
+    d.innerHTML = t.getAttribute('data-dica'); d.style.display = 'block';
+    const x = Math.min(window.innerWidth - d.offsetWidth - 8, e.clientX + 12), y = e.clientY - d.offsetHeight - 10;
+    d.style.left = Math.max(8, x) + 'px'; d.style.top = (y < 8 ? e.clientY + 16 : y) + 'px';
+  };
+  document.addEventListener('pointermove', mostrar);
+  document.addEventListener('pointerdown', mostrar);
+  window.addEventListener('scroll', () => { d.style.display = 'none'; }, { passive: true });
+})();
+
+// ---------- Página inicial ----------
+function pagamentosReais(){ return fichas.flatMap(f => (f.pagamentos || []).filter(p => !p.inicial).map(p => ({ p, f }))); }
+const maiuscula = t => t ? t[0].toUpperCase() + t.slice(1) : t;
+function saudacaoHora(){ const hr = new Date().getHours(); return hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite'; }
+function blocosHTML(){
+  const q = contadores();
+  return itensMenu().filter(it => it.id !== 'home').map(it =>
+    `<button class="bloco" onclick="clicarMenu('${it.id}')">${q[it.id] ? `<span class="qtd">${q[it.id]}</span>` : ''}<span class="bi">${ico(it.i)}</span><b>${it.t}</b><span>${it.d || ''}</span></button>`).join('');
+}
+function kpi(rot, i, val, det, cls){ return `<div class="kpi${cls ? ' ' + cls : ''}"><div class="rot">${ico(i)}${rot}</div><div class="val">${val}</div><div class="det">${det || ''}</div></div>`; }
+function renderHome(){
+  const v = document.getElementById('view-home');
+  if(!v) return;
+  const primeiro = String(PERFIL.nome || '').split(' ')[0];
+  const topo = `<div class="saudacao">${avatarHTML({ id: PERFIL.id, nome: PERFIL.nome })}<div><h2>${saudacaoHora()}${primeiro ? ', ' + h(primeiro) : ''}!</h2><p>${maiuscula(formatDataExtenso(HOJE))}${EMPRESA.nome ? ' · ' + h(EMPRESA.nome) : ''}</p></div></div>`;
+  if(UI.papel === 'cobrador'){ v.innerHTML = topo + homeCobrador(); return; }
+  const pg = pagamentosReais(), hoje = pg.filter(x => x.p.data === HOJE);
+  const soma = a => a.reduce((s, x) => s + x.p.valor, 0);
+  const pix = soma(hoje.filter(x => x.p.forma === 'pix')), din = soma(hoje.filter(x => x.p.forma === 'dinheiro'));
+  const ativos = cobradoresAtivos();
+  const doDia = ativos.flatMap(c => fichasDoDia(c.id)), pend = doDia.filter(f => f.status === 'pendente').length;
+  const atrasadas = listaAtrasadas().length, aguard = contadores().conferencia || 0;
+  const enviados = ativos.filter(c => enviosDia[c.id]).length;
+  v.innerHTML = topo + `<div class="kpis">
+      ${kpi('Cobrado hoje', 'dinheiro', formatBRL(pix + din), hoje.length + ' pagamento(s)', 'destaque')}
+      ${kpi('Pix hoje', 'pix', formatBRL(pix), 'confira no banco')}
+      ${kpi('Dinheiro hoje', 'carteira', formatBRL(din), 'a receber dos cobradores')}
+      ${kpi('Fichas de hoje', 'ficha', (doDia.length - pend) + ' / ' + doDia.length, pend + ' ainda a cobrar')}
+      ${kpi('Resultados do dia', 'conferir', enviados + ' / ' + ativos.length, aguard ? aguard + ' aguardando sua conferência' : 'cobradores que já enviaram', aguard ? 'alerta' : '')}
+      ${kpi('Atrasadas', 'alerta', String(atrasadas), 'fichas com cobrança vencida', atrasadas ? 'alerta' : '')}
+    </div>
+    <div class="titulo-sec">Menu</div>
+    <div class="blocos">${blocosHTML()}</div>
+    <div class="titulo-sec">Desempenho</div>
+    <div class="graficos">
+      <div class="cartao grafico" style="grid-column:1/-1;"><h3>Cobrado por dia</h3><div class="gsub">Últimos 14 dias, todos os cobradores</div><div id="g-dias"></div></div>
+      <div class="cartao grafico"><h3>Por cobrador</h3><div class="gsub">Este mês</div><div id="g-cob"></div></div>
+      <div class="cartao grafico"><h3>Por bairro</h3><div class="gsub">Este mês, os que mais pagaram</div><div id="g-bairro"></div></div>
+    </div>`;
+  desenharGraficos(pg);
+}
+function desenharGraficos(pg){
+  pg = pg || pagamentosReais();
+  const gd = document.getElementById('g-dias'); if(!gd) return;
+  const dias = [];
+  for(let i = 13; i >= 0; i--){ const d = new Date(HOJE + 'T12:00:00'); d.setDate(d.getDate() - i); dias.push(isoLocal(d)); }
+  const porDia = {}; pg.forEach(x => { porDia[x.p.data] = (porDia[x.p.data] || 0) + x.p.valor; });
+  graficoColunas(gd, dias.map(d => ({ r: d.slice(8, 10) + '/' + d.slice(5, 7), v: porDia[d] || 0, destaque: d === HOJE,
+    dica: `${dataBR(d)}${d === HOJE ? ' (hoje)' : ''}: <b>${formatBRL(porDia[d] || 0)}</b>` })));
+  const mes = HOJE.slice(0, 7), doMes = pg.filter(x => x.p.data.slice(0, 7) === mes);
+  const porCob = {}; doMes.forEach(x => { const id = x.p.cobradorId ?? x.f.cobradorId; porCob[id] = (porCob[id] || 0) + x.p.valor; });
+  const cobs = cobradores.map(c => ({ r: c.nome, v: porCob[c.id] || 0 })).filter(d => d.v > 0 || cobradoresAtivos().some(c => c.nome === d.r)).sort((a, b) => b.v - a.v);
+  graficoBarras(document.getElementById('g-cob'), cobs.map(d => ({ ...d, dica: `${h(d.r)}: <b>${formatBRL(d.v)}</b>` })));
+  const porB = {}; doMes.forEach(x => { const b = (clientes.find(c => c.id === x.f.clienteId) || {}).bairro || 'Sem bairro'; porB[b] = (porB[b] || 0) + x.p.valor; });
+  let bs = Object.entries(porB).map(([r, v]) => ({ r, v })).sort((a, b) => b.v - a.v);
+  if(bs.length > 8){ const resto = bs.slice(7).reduce((s, d) => s + d.v, 0); bs = bs.slice(0, 7).concat([{ r: 'Outros bairros', v: resto }]); }
+  graficoBarras(document.getElementById('g-bairro'), bs.map(d => ({ ...d, dica: `${h(d.r)}: <b>${formatBRL(d.v)}</b>` })));
+}
+function homeCobrador(){
+  const id = sessao && sessao.papel === 'cobrador' ? sessao.id : document.getElementById('select-cobrador').value;
+  const dia = fichasDoDia(id), pagas = dia.filter(f => f.status === 'paga'), pend = dia.filter(f => f.status === 'pendente');
+  const val = f => (f.valorRecebidoHoje ?? f.parcela);
+  const tot = pagas.reduce((s, f) => s + val(f), 0), pix = pagas.filter(f => f.formaPagamento === 'pix').reduce((s, f) => s + val(f), 0);
+  const feitas = dia.length - pend.length;
+  const prox = {}; fichas.filter(f => f.cobradorId === id && !f.quitada && !f.cancelada).forEach(f => { const d = dataProxima(f) || (f.status === 'paga' ? f.proximaData : null); if(d && d > HOJE) prox[d] = (prox[d] || 0) + 1; });
+  const agenda = Object.keys(prox).sort().slice(0, 5).map(d => `<span class="chip"><b>${dataBR(d).slice(0, 5)}</b> ${prox[d]} ficha(s)</span>`).join('');
+  return `<div class="resumo-dia">
+      <div class="topo"><div><h2>Hoje</h2><div class="data">${enviosDia[id] ? 'Resultado do dia já enviado ✓' : (pend.length ? 'Faltam ' + pend.length + ' ficha(s)' : (dia.length ? 'Rota concluída, falta enviar o resultado' : 'Nenhuma ficha para hoje'))}</div></div></div>
+      <div class="total">${formatBRL(tot)}</div>
+      <div class="linha-v"><span>Pix <b>${formatBRL(pix)}</b></span><span>Dinheiro a entregar <b>${formatBRL(tot - pix)}</b></span></div>
+      <div class="progresso"><div style="width:${dia.length ? Math.round(feitas / dia.length * 100) : 0}%"></div></div>
+      <div class="prog-txt">${feitas} de ${dia.length} ficha(s) visitada(s)</div>
+      <div class="acoes" style="margin:14px 0 0;"><button class="btn" onclick="irPara('rota')">${ico('rota', 'sm')} Abrir rota de hoje</button><button class="btn" onclick="abrirOrganizador()">${ico('ordem', 'sm')} Organizar rota</button></div>
+    </div>
+    ${agenda ? `<div class="titulo-sec">Próximos dias</div><div style="margin:0 0 20px;">${agenda}</div>` : ''}
+    <div class="titulo-sec">Menu</div>
+    <div class="blocos">${blocosHTML()}</div>`;
+}
+
+// atualizações automáticas da página inicial e do menu
+const _renderAdminV3 = renderAdmin;
+renderAdmin = function(){ _renderAdminV3(); populateBairroSelect(); depoisDeDesenhar(); };
+const _renderCobradorV3 = renderCobrador;
+renderCobrador = function(){ _renderCobradorV3(); depoisDeDesenhar(); };
+function depoisDeDesenhar(){ montarMenu(); if(UI.pagina === 'home') renderHome(); }
+
+// ---------- início da interface ----------
+(function iniciarInterface(){
+  document.body.classList.toggle('real', !!(window.RC && RC.real));
+  document.querySelectorAll('main table').forEach(t => {
+    if(t.parentElement.classList.contains('tabela-wrap')) return;
+    const w = document.createElement('div'); w.className = 'tabela-wrap'; t.parentNode.insertBefore(w, t); w.appendChild(t);
+  });
+  temaDoLogin();
+  const tb = document.getElementById('topbar');
+  window.addEventListener('scroll', () => tb.classList.toggle('rolou', window.scrollY > 4), { passive: true });
+  let redim = null;
+  window.addEventListener('resize', () => { clearTimeout(redim); redim = setTimeout(() => { if(UI.pagina === 'home' && UI.papel === 'admin') desenharGraficos(); }, 200); });
+  populateCobradorSelect();
+  if(!(window.RC && RC.real)){
+    EMPRESA.nome = EMPRESA.nome || 'Distribuidora Modelo';
+    aplicarTema();
+    if(!EXIGIR_LOGIN){ sessao = { papel: 'admin' }; setRole('admin'); }
+  }
+})();
 </script>
 
 <script>
@@ -2691,15 +3573,7 @@ const isRede = e => /failed to fetch|networkerror|load failed|fetch failed|netwo
 const isAuth = e => /jwt|token|not authenticated/i.test(String(e && e.message || e)) || (e && (e.status === 401));
 
 // ---------- avisos ----------
-function aviso(msg, ok){
-  let t = $('rc-toast');
-  if(!t){ t = document.createElement('div'); t.id = 'rc-toast';
-    t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:300;max-width:92vw;padding:10px 16px;border-radius:6px;font-size:.9rem;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);';
-    document.body.appendChild(t); }
-  t.style.background = ok ? 'var(--ledger-green)' : 'var(--stamp-red)';
-  t.textContent = msg; t.style.display = 'block';
-  clearTimeout(t._t); t._t = setTimeout(() => { t.style.display = 'none'; }, ok ? 3500 : 9000);
-}
+function aviso(msg, ok){ toast(msg, ok); }
 function msgErro(e){
   const m = String(e && e.message || e || 'Erro desconhecido');
   if(isRede(m)) return 'Sem conexão com a internet. Tente de novo.';
@@ -2707,6 +3581,7 @@ function msgErro(e){
   if(/already registered|user_already_exists/i.test(m)) return 'Esse usuário já existe.';
   if(/password should be at least|weak_password/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
   if(/email_address_invalid|email address .* is invalid|unable to validate email/i.test(m)) return 'O Supabase recusou o e-mail interno de acesso. Veja DOMINIO_EMAIL no passo a passo.';
+  if(/column .* does not exist|could not find the function|schema cache/i.test(m)) return 'O banco de dados ainda não foi atualizado para a versão 3. Rode o arquivo atualizacao-v3.sql no SQL Editor do Supabase e entre de novo.';
   return m.replace(/^DIA_FECHADO: /, 'Dia já conferido: ');
 }
 const mostrarErroEm = (el, msg) => { if(!el) return; if(el.tagName === 'DIV' || el.tagName === 'P' || el.tagName === 'SPAN'){ el.textContent = msg; el.style.color = 'var(--stamp-red)'; } };
@@ -2740,7 +3615,8 @@ async function porLotes(ids, tamanho, fn){
 }
 
 // ---------- tradução banco -> formato da tela ----------
-const FICHA_COLS = 'id,numero,cliente_id,cobrador_id,mercadoria,valor_total,valor_pago,parcela,data_cobranca,status,proxima_data,nao_visitada,quitada,cancelada,motivo_cancelamento';
+const FICHA_COLS = 'id,numero,cliente_id,cobrador_id,mercadoria,valor_total,valor_pago,parcela,data_cobranca,status,proxima_data,nao_visitada,quitada,cancelada,motivo_cancelamento,ordem_rota';
+const CLI_COLS = 'id,nome,endereco,numero_casa,referencia,bairro,telefone';
 const PG_COLS = 'id,ficha_id,cobrador_id,data,valor,forma,inicial,corrigido,criado_em';
 
 function aplicarRow(f){
@@ -2748,7 +3624,7 @@ function aplicarRow(f){
   f.numero = numPad(r.numero); f.clienteId = r.cliente_id; f.cobradorId = r.cobrador_id;
   f.mercadoria = limpa(r.mercadoria); f.valorTotal = +r.valor_total; f.valorPago = +r.valor_pago; f.parcela = +r.parcela;
   f.vencimento = r.data_cobranca; f.status = r.status; f.cancelada = !!r.cancelada; f.quitada = !!(r.quitada || r.cancelada);
-  f.motivoCancelamento = limpa(r.motivo_cancelamento);
+  f.motivoCancelamento = limpa(r.motivo_cancelamento); f.ordem = (r.ordem_rota == null) ? null : +r.ordem_rota;
   delete f.novaData; delete f.proximaData; delete f.remarcacaoAutomatica;
   if(r.status === 'remarcada'){ f.novaData = r.proxima_data; if(r.nao_visitada) f.remarcacaoAutomatica = true; }
   if(r.status === 'paga' && r.proxima_data && !f.quitada) f.proximaData = r.proxima_data;
@@ -2764,7 +3640,7 @@ function upsertFichas(rows){
   return novos;
 }
 function mapCliente(r, cpf){
-  return Object.assign({ id: r.id, nome: limpa(r.nome), endereco: limpa(r.endereco), referencia: limpa(r.referencia), bairro: limpa(r.bairro), telefone: limpa(r.telefone) }, cpf ? { cpf } : {});
+  return Object.assign({ id: r.id, nome: limpa(r.nome), endereco: limpa(r.endereco), numeroCasa: limpa(r.numero_casa), referencia: limpa(r.referencia), bairro: limpa(r.bairro), telefone: limpa(r.telefone) }, cpf ? { cpf } : {});
 }
 function upsertClientes(rows, docs){
   const cpfs = new Map((docs || []).map(d => [d.cliente_id, String(d.cpf).trim()]));
@@ -2779,7 +3655,7 @@ async function buscarFichasPorIds(ids){
 }
 async function buscarClientes(ids){
   if(!ids.length) return;
-  const rows = await porLotes(ids, 100, async lote => { const r = await db.from('clientes').select('id,nome,endereco,referencia,bairro,telefone').in('id', lote); if(r.error) throw r.error; return r.data || []; });
+  const rows = await porLotes(ids, 100, async lote => { const r = await db.from('clientes').select(CLI_COLS).in('id', lote); if(r.error) throw r.error; return r.data || []; });
   const docs = eu.papel === 'admin' ? await porLotes(ids, 100, async lote => { const r = await db.from('clientes_documentos').select('cliente_id,cpf').in('cliente_id', lote); if(r.error) throw r.error; return r.data || []; }) : [];
   upsertClientes(rows, docs);
 }
@@ -2836,8 +3712,8 @@ const FECH_COLS = 'cobrador_id,enviado_em,confirmado_em,especie_entregue,diferen
 async function carregarPequenas(){
   const adm = eu.papel === 'admin';
   const [emp, perfis, rotas, vls, fech, aud] = await Promise.all([
-    db.from('empresas').select('id,nome,chave_acesso,ativa,cobradores_incluidos').single(),
-    lerTudo('perfis', 'id,nome,usuario,papel,periodicidade,comissao_pct,ativo'),
+    db.from('empresas').select('id,nome,chave_acesso,ativa,cobradores_incluidos,cor,marca_dagua').single(),
+    lerTudo('perfis', 'id,nome,usuario,papel,periodicidade,comissao_pct,ativo,telefone'),
     lerTudo('rotas_bairros', 'bairro,cobrador_id', null, 'bairro'),
     lerTudo('vales', 'id,cobrador_id,data,valor,origem,criado_em'),
     lerTudo('fechamentos_dia', FECH_COLS, q => q.eq('data', HOJE), 'cobrador_id'),
@@ -2846,9 +3722,10 @@ async function carregarPequenas(){
   if(emp.error) throw emp.error;
   if(!emp.data.ativa) throw new Error('A assinatura desta empresa está suspensa. Entre em contato com o suporte.');
   EMPRESA.nome = limpa(emp.data.nome); EMPRESA.chave = emp.data.chave_acesso; EMPRESA.cobradoresIncluidos = emp.data.cobradores_incluidos;
+  EMPRESA.cor = emp.data.cor || ''; EMPRESA.marcaDagua = !!emp.data.marca_dagua;
   const ce = $('chave-empresa'); if(ce) ce.textContent = EMPRESA.chave;
   cobradores = perfis.filter(p => p.papel === 'cobrador').map(p => ({
-    id: p.id, nome: limpa(p.nome), login: p.usuario, senha: '', periodicidade: p.periodicidade, comissao: +p.comissao_pct, bairros: [], ativo: !!p.ativo
+    id: p.id, nome: limpa(p.nome), login: p.usuario, senha: '', periodicidade: p.periodicidade, comissao: +p.comissao_pct, bairros: [], ativo: !!p.ativo, telefone: limpa(p.telefone)
   })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   rotas.forEach(r => { const c = cobradores.find(x => x.id === r.cobrador_id); if(c) c.bairros.push(limpa(r.bairro)); });
   vales = vls.sort((a, b) => a.criado_em < b.criado_em ? -1 : 1).map(v => ({
@@ -2857,12 +3734,24 @@ async function carregarPequenas(){
   }));
   aplicarFech(fech);
   auditoria = (aud.data || []).slice().reverse().map(r => ({ quando: r.criado_em, quem: limpa(r.quem), acao: limpa(r.acao), detalhe: h(r.detalhe) }));
+  const meu = perfis.find(p => p.id === (eu && eu.id));
+  if(meu){ eu.nome = limpa(meu.nome); eu.telefone = limpa(meu.telefone); PERFIL.nome = eu.nome; PERFIL.telefone = eu.telefone; }
   if(prestacaoAberta){ try { prestCache[prestacaoAberta] = await rpc('calcular_prestacao', { p_cobrador: prestacaoAberta }); } catch(e){} }
+  aplicarTema(); atualizarUsuario();
+}
+// logo e fotos são lidas à parte (são imagens; não precisam vir a cada atualização)
+async function carregarImagens(){
+  try {
+    const [e, p] = await Promise.all([ db.from('empresas').select('logo').single(), db.from('perfis').select('id,foto') ]);
+    if(!e.error) EMPRESA.logo = (e.data && e.data.logo) || '';
+    if(!p.error){ FOTOS = {}; (p.data || []).forEach(r => { if(r.foto) FOTOS[r.id] = r.foto; }); }
+  } catch(e){}
+  aplicarTema(); atualizarUsuario();
 }
 async function carregarGrandes(){
   const adm = eu.papel === 'admin', d0 = desde();
   const [cli, docs, ativas, recentes] = await Promise.all([
-    lerTudo('clientes', 'id,nome,endereco,referencia,bairro,telefone'),
+    lerTudo('clientes', CLI_COLS),
     adm ? lerTudo('clientes_documentos', 'cliente_id,cpf', null, 'cliente_id') : Promise.resolve([]),
     lerTudo('fichas', FICHA_COLS, q => q.eq('quitada', false).eq('cancelada', false)),
     lerTudo('fichas', FICHA_COLS, q => q.or('quitada.eq.true,cancelada.eq.true').gte('data_cobranca', d0))
@@ -2918,20 +3807,27 @@ function renderTudo(){
 }
 // executa uma ação do administrador e atualiza a tela com o que o banco guardou de verdade
 async function executar(fn, ops, el){
-  ocupado = true;
+  ocupado = true; carregando(true);
   try { const r = await fn(); await recarregar(ops); return r === undefined ? true : r; }
   catch(e){
     const m = msgErro(e); aviso(m); mostrarErroEm(el, m);
     try { await recarregar(ops); } catch(_){}
     return undefined;
-  } finally { ocupado = false; }
+  } finally { ocupado = false; carregando(false); }
+}
+// igual a executar, mas devolve o erro para a tela que chamou (janelas)
+async function acaoServidor(fn, ops){
+  ocupado = true; carregando(true);
+  try { const r = await fn(); await recarregar(ops); return r; }
+  catch(e){ try { await recarregar(ops); } catch(_){} throw new Error(msgErro(e)); }
+  finally { ocupado = false; carregando(false); }
 }
 
 // ---------- cache para abrir sem internet (só cobrador) ----------
 function salvarCache(){
   if(!eu || eu.papel !== 'cobrador') return;
   try {
-    localStorage.setItem('rc_cache_' + eu.id, JSON.stringify({ eu, hoje: HOJE, empresa: { nome: EMPRESA.nome, chave: EMPRESA.chave }, cobradores, clientes, fichas, vales, enviosDia, confirmacoesAdmin, entregasRegistradas }));
+    localStorage.setItem('rc_cache_' + eu.id, JSON.stringify({ eu, hoje: HOJE, empresa: { nome: EMPRESA.nome, chave: EMPRESA.chave, cor: EMPRESA.cor, logo: EMPRESA.logo, marcaDagua: EMPRESA.marcaDagua }, foto: FOTOS[eu.id] || '', cobradores, clientes, fichas, vales, enviosDia, confirmacoesAdmin, entregasRegistradas }));
     localStorage.setItem('rc_ultimo', eu.id);
   } catch(e){}
 }
@@ -2940,7 +3836,8 @@ function restaurarCache(){
     const id = localStorage.getItem('rc_ultimo'); if(!id) return false;
     const c = JSON.parse(localStorage.getItem('rc_cache_' + id) || 'null'); if(!c) return false;
     eu = c.eu; sessao = { papel: 'cobrador', id: eu.id };
-    EMPRESA.nome = c.empresa.nome; EMPRESA.chave = c.empresa.chave;
+    EMPRESA.nome = c.empresa.nome; EMPRESA.chave = c.empresa.chave; EMPRESA.cor = c.empresa.cor || ''; EMPRESA.logo = c.empresa.logo || ''; EMPRESA.marcaDagua = !!c.empresa.marcaDagua;
+    if(c.foto) FOTOS[eu.id] = c.foto;
     cobradores = c.cobradores; vales = c.vales; enviosDia = c.enviosDia; confirmacoesAdmin = c.confirmacoesAdmin; entregasRegistradas = c.entregasRegistradas;
     clientes.length = 0; cliMap.clear(); c.clientes.forEach(x => { clientes.push(x); cliMap.set(x.id, x); });
     fichas.length = 0; porId.clear(); c.fichas.forEach(f => { fichas.push(f); porId.set(f.id, f); });
@@ -2957,6 +3854,7 @@ function descreverItem(it){
   if(it.tipo === 'baixa') return 'Baixa de ' + formatBRL(it.valor) + ' na ficha ' + it.numero;
   if(it.tipo === 'remarcar') return 'Remarcação da ficha ' + it.numero;
   if(it.tipo === 'proxima') return 'Próxima data da ficha ' + it.numero;
+  if(it.tipo === 'ordem') return 'Ordem da rota';
   return 'Envio do resultado do dia';
 }
 async function enviarItem(it){
@@ -2964,6 +3862,7 @@ async function enviarItem(it){
   if(it.tipo === 'remarcar') return rpc('remarcar_ficha', { p_ficha: it.fichaId, p_nova: it.nova, p_data: it.data });
   if(it.tipo === 'proxima') return rpc('alterar_proxima_data', { p_ficha: it.fichaId, p_data: it.nova });
   if(it.tipo === 'enviar') return rpc('enviar_resultado_dia', { p_data: it.data });
+  if(it.tipo === 'ordem') return rpc('ordenar_rota', { p_fichas: it.fichaIds });
 }
 async function sincronizar(){
   if(sincronizando || !eu || eu.papel !== 'cobrador' || !fila.length || !navigator.onLine) return;
@@ -3017,11 +3916,11 @@ async function atualizarDia(){
 function uiSessao(){
   $('tela-login').style.display = 'none';
   const ps = $('tela-primeiro'); if(ps) ps.style.display = 'none';
-  $('btn-sair').style.display = ''; $('btn-senha').style.display = '';
-  document.querySelector('.role-switch').style.display = 'none';
   $('select-cobrador').disabled = true;
   const bo = $('btn-offline'); if(bo) bo.style.display = 'none';
-  if(eu.papel === 'admin') setRole('admin'); else { setRole('cobrador'); }
+  PERFIL = { id: eu.id, nome: eu.nome, usuario: eu.usuario, telefone: eu.telefone || '', papel: eu.papel };
+  aplicarTema();
+  setRole(eu.papel);
   renderTudo(); atualizarBannerOffline();
 }
 let timers = null;
@@ -3033,22 +3932,24 @@ async function iniciarSessao(){
   const u = await db.auth.getUser();
   const user = u.data && u.data.user;
   if(u.error || !user) throw u.error || new Error('Sessão inválida. Entre de novo.');
-  const r = await db.from('perfis').select('id,nome,usuario,papel,ativo').eq('id', user.id).maybeSingle();
+  const r = await db.from('perfis').select('id,nome,usuario,papel,ativo,telefone').eq('id', user.id).maybeSingle();
   if(r.error) throw r.error;
   if(!r.data){ await db.auth.signOut(); throw new Error('Este acesso ainda não foi ativado. Use "Primeiro acesso" ou procure o administrador.'); }
   if(!r.data.ativo){ await db.auth.signOut(); throw new Error('Este usuário está desativado. Procure o administrador.'); }
-  eu = { id: r.data.id, papel: r.data.papel, nome: r.data.nome, usuario: r.data.usuario };
+  eu = { id: r.data.id, papel: r.data.papel, nome: limpa(r.data.nome), usuario: r.data.usuario, telefone: limpa(r.data.telefone) };
   sessao = eu.papel === 'admin' ? { papel: 'admin' } : { papel: 'cobrador', id: eu.id };
   lerFila(); HOJE = RC.hoje();
-  try { await recarregar({ todos: true }); }
+  carregando(true);
+  try { await recarregar({ todos: true }); await carregarImagens(); }
   catch(e){ eu = null; sessao = null; try { await db.auth.signOut(); } catch(_){} throw e; }
+  finally { carregando(false); }
   uiSessao(); iniciarTimers(); sincronizar();
 }
 entrar = async function(){
   const chave = $('login-chave').value.trim().toLowerCase(), user = $('login-usuario').value.trim().toLowerCase(), senha = $('login-senha').value;
   const erro = $('login-erro'), btn = document.querySelector('#tela-login button.primary');
   if(!chave || !user || !senha){ erro.textContent = 'Preencha a chave da empresa, o usuário e a senha.'; return; }
-  if(btn) btn.disabled = true; erro.textContent = 'Entrando…'; erro.style.color = 'var(--ink-soft)';
+  if(btn) btn.disabled = true; erro.textContent = 'Entrando…'; erro.style.color = 'var(--ink-soft)'; carregando(true);
   try {
     const r = await db.auth.signInWithPassword({ email: emailDe(user, chave), password: senha });
     if(r.error) throw r.error;
@@ -3056,7 +3957,7 @@ entrar = async function(){
     await iniciarSessao();
     erro.textContent = '';
   } catch(e){ erro.style.color = 'var(--stamp-red)'; erro.textContent = msgErro(e); if(!eu){ try { await db.auth.signOut(); } catch(_){} } }
-  finally { if(btn) btn.disabled = false; }
+  finally { if(btn) btn.disabled = false; carregando(false); }
 };
 sair = async function(){
   if(fila.length && !confirm('Há ' + fila.length + ' registro(s) que ainda não foram enviados. Se sair agora eles podem ser perdidos. Sair mesmo assim?')) return;
@@ -3072,9 +3973,9 @@ function criarTelas(){
   a.innerHTML = '<a href="#" id="link-primeiro">Primeiro acesso da empresa (tenho um código de convite)</a>';
   card.appendChild(a);
   const d = document.createElement('div'); d.id = 'tela-primeiro';
-  d.style.cssText = 'position:fixed;inset:0;z-index:101;background:var(--paper);display:none;align-items:center;justify-content:center;padding:16px;overflow:auto;';
-  d.innerHTML = `<div class="card-block" style="max-width:420px;width:100%;">
-    <h1 style="font-size:1.4rem;">Primeiro acesso da empresa</h1>
+  d.className = 'tela-cheia'; d.style.zIndex = '101'; d.style.display = 'none';
+  d.innerHTML = `<div class="login-card card-block" style="max-width:440px;">
+    <h1 style="font-size:1.35rem;margin-bottom:6px;">Primeiro acesso da empresa</h1>
     <p style="font-size:.85rem;color:var(--ink-soft);">Use o código de convite que você recebeu. Você será o administrador. A chave da empresa é o que seus cobradores digitam para entrar.</p>
     <div class="vale-form" style="flex-direction:column;align-items:stretch;">
       <input type="text" id="pa-codigo" placeholder="Código de convite" autocomplete="off">
@@ -3091,8 +3992,6 @@ function criarTelas(){
   $('link-primeiro').onclick = e => { e.preventDefault(); d.style.display = 'flex'; };
   $('pa-voltar').onclick = e => { e.preventDefault(); d.style.display = 'none'; };
   $('pa-btn').onclick = primeiroAcesso;
-  const bs = document.createElement('button'); bs.id = 'btn-senha'; bs.className = $('btn-sair').className; bs.style.cssText = $('btn-sair').style.cssText; bs.style.display = 'none';
-  bs.textContent = 'Minha senha'; bs.onclick = minhaSenha; $('btn-sair').insertAdjacentElement('beforebegin', bs);
 }
 async function primeiroAcesso(){
   const v = id => $(id).value.trim(), erro = $('pa-erro'), btn = $('pa-btn');
@@ -3117,23 +4016,10 @@ async function primeiroAcesso(){
   } catch(e){ erro.style.color = 'var(--stamp-red)'; erro.textContent = msgErro(e); }
   finally { btn.disabled = false; }
 }
-function minhaSenha(){
-  const d = document.createElement('div');
-  d.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;';
-  d.innerHTML = `<div class="card-block" style="max-width:360px;width:100%;background:var(--paper);"><h3>Alterar minha senha</h3>
-    <div class="vale-form" style="flex-direction:column;align-items:stretch;"><input type="password" id="ms-nova" placeholder="Nova senha (mínimo 6 caracteres)"><input type="password" id="ms-conf" placeholder="Repita a nova senha">
-    <div style="display:flex;gap:8px;"><button class="btn primary" id="ms-ok">Salvar</button><button class="btn ghost" id="ms-x">Cancelar</button></div></div><p id="ms-erro" style="font-size:.85rem;color:var(--stamp-red);min-height:1.2em;"></p></div>`;
-  document.body.appendChild(d);
-  $('ms-x').onclick = () => d.remove();
-  $('ms-ok').onclick = async () => {
-    const a = $('ms-nova').value, b = $('ms-conf').value, er = $('ms-erro');
-    if(a.length < 6){ er.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
-    if(a !== b){ er.textContent = 'As duas senhas não são iguais.'; return; }
-    const r = await db.auth.updateUser({ password: a });
-    if(r.error){ er.textContent = msgErro(r.error); return; }
-    d.remove(); aviso('Senha alterada.', true);
-  };
-}
+aplicarNovaSenha = async function(s){
+  const r = await db.auth.updateUser({ password: s });
+  if(r.error) throw new Error(msgErro(r.error));
+};
 
 // ---------- ações do cobrador (guardam no aparelho e enviam assim que há internet) ----------
 const _cb = confirmarBaixa;
@@ -3185,15 +4071,17 @@ registrar = function(acao, detalhe){
 const _lf = lancarFicha;
 lancarFicha = function(){
   const g = id => ($(id) ? $(id).value.trim() : '');
-  const d = { nome: g('lancar-nome'), bairro: $('lancar-bairro').value, endereco: g('lancar-endereco'), referencia: g('lancar-referencia'), telefone: g('lancar-telefone'),
+  const bd = $('lancar-bairro').value.trim();
+  const d = { nome: g('lancar-nome'), bairro: todosBairros().find(b => normalizaTxt(b) === normalizaTxt(bd)) || bd, endereco: g('lancar-endereco'), referencia: g('lancar-referencia'), telefone: g('lancar-telefone'),
     cpf: soDigitos(g('lancar-cpf')), merc: g('lancar-mercadoria') || 'Mercadoria', total: parseFloat($('lancar-total').value), parcela: parseFloat($('lancar-parcela').value),
-    data: $('lancar-vencimento').value || null, numero: parseInt(g('lancar-numero'), 10) || null };
+    data: $('lancar-vencimento').value || null, numero: parseInt(g('lancar-numero'), 10) || null, casa: g('lancar-casa'), cob: $('lancar-cobrador').value || null };
   const n = fichas.length; _lf();
   if(fichas.length <= n) return;
   const nova = fichas[fichas.length - 1], st = $('lancar-status');
   executar(async () => {
     const r = await rpc('lancar_ficha', { p_nome: d.nome, p_bairro: d.bairro, p_endereco: d.endereco, p_referencia: d.referencia, p_telefone: d.telefone, p_cpf: d.cpf || null,
-      p_mercadoria: d.merc, p_valor_total: d.total, p_parcela: d.parcela, p_data: d.data, p_numero: d.numero, p_cliente_id: UUID_RE.test(nova.clienteId || '') ? nova.clienteId : null });
+      p_mercadoria: d.merc, p_valor_total: d.total, p_parcela: d.parcela, p_data: d.data, p_numero: d.numero, p_cliente_id: UUID_RE.test(nova.clienteId || '') ? nova.clienteId : null,
+      p_numero_casa: d.casa || null, p_cobrador: d.cob });
     nova._res = r; return r;
   }, null, st).then(async r => {
     if(r && r.id){ await recarregar({ fichas: [r.id] }); st.textContent = 'Ficha ' + numPad(r.numero) + ' lançada para ' + r.cobrador + '.'; st.style.color = 'var(--ledger-green)'; }
@@ -3203,11 +4091,11 @@ const _se = salvarEdicao;
 salvarEdicao = function(numero){
   const f = fichas.find(x => x.numero === numero), g = id => ($(id) ? $(id).value.trim() : '');
   const d = { endereco: g('ed-endereco'), ref: g('ed-ref'), tel: g('ed-tel'), cpf: soDigitos(g('ed-cpf')), merc: g('ed-merc'), mercNova: g('ed-merc-nova'),
-    add: parseFloat(g('ed-valor-add')) || 0, parcela: parseFloat(g('ed-parcela')), cob: g('ed-cobrador'), data: g('ed-data') };
+    add: parseFloat(g('ed-valor-add')) || 0, parcela: parseFloat(g('ed-parcela')), cob: g('ed-cobrador'), data: g('ed-data'), casa: $('ed-casa') ? g('ed-casa') : null };
   const erro = $('ed-cpf-erro'); _se(numero);
   if(erro && erro.textContent) return;
   executar(() => rpc('editar_ficha', { p_ficha: f.id, p_endereco: d.endereco || null, p_referencia: d.ref, p_telefone: d.tel, p_cpf: d.cpf || null,
-    p_mercadoria: d.merc || null, p_mercadoria_nova: d.mercNova || null, p_valor_add: d.add, p_parcela: d.parcela > 0 ? d.parcela : null, p_cobrador: d.cob || null, p_data: d.data || null }),
+    p_mercadoria: d.merc || null, p_mercadoria_nova: d.mercNova || null, p_valor_add: d.add, p_parcela: d.parcela > 0 ? d.parcela : null, p_cobrador: d.cob || null, p_data: d.data || null, p_numero_casa: d.casa }),
     { fichas: [f.id] }, $('ficha-detalhe'));
 };
 const _cf = cancelarFicha;
@@ -3307,11 +4195,6 @@ renderMensal = function(){
   tbody.innerHTML = totais.map(t => `<tr class="${t.c.id === melhor.c.id && geral ? 'best' : ''}"><td>${linkCobrador(t.c.id, t.c.nome)}${t.c.id === melhor.c.id && geral ? ' 🏆' : ''}</td>
     <td class="num mono">${formatBRL(t.total)}</td><td class="num mono">${t.qtd}</td><td class="num mono">${geral ? ((t.total / geral) * 100).toFixed(1) : '0.0'}%</td></tr>`).join('');
 };
-const _rcobs = renderCobradores;
-renderCobradores = function(){
-  _rcobs();
-  document.querySelectorAll('#tabela-cobradores tr').forEach(tr => { if(tr.children[4]) tr.children[4].innerHTML = '<span style="font-size:.8rem;color:var(--ink-soft);">o cobrador troca em “Minha senha”</span>'; });
-};
 trocarSenha = function(){ const st = $('cobrador-status'); st.textContent = 'Cada cobrador altera a própria senha no botão “Minha senha”.'; st.style.color = 'var(--ink-soft)'; };
 const _cc = cadastrarCobrador;
 cadastrarCobrador = function(){
@@ -3343,7 +4226,7 @@ confirmarImportacao = async function(){
   try {
     let ok = 0, novos = 0, erros = [];
     for(let i = 0; i < r.validas.length; i += 500){
-      const lote = r.validas.slice(i, i + 500).map(v => ({ linha: v.linha, numero: v.numero, cliente: v.cliente, bairro: v.bairro, endereco: v.endereco, referencia: v.referencia, telefone: v.telefone,
+      const lote = r.validas.slice(i, i + 500).map(v => ({ linha: v.linha, numero: v.numero, cliente: v.cliente, bairro: v.bairro, endereco: v.endereco, numero_casa: v.numero_casa, referencia: v.referencia, telefone: v.telefone,
         cpf: v.cpf, mercadoria: v.mercadoria, valor_total: v.total, valor_pago: v.pago, parcela: v.parcela, data: v.data }));
       const res = await rpc('importar_fichas', { p_linhas: lote });
       ok += res.importadas; novos += res.clientes_novos; erros = erros.concat(res.erros || []);
@@ -3376,6 +4259,30 @@ exportarTabela = async function(tipo){
   } catch(e){ aviso(msgErro(e)); }
 };
 
+// ---------- versão 3: bairros, ordem da rota, perfil e empresa ----------
+aplicarEdicaoBairro = async function(antigo, novo, cob, mover){
+  const r = await acaoServidor(() => rpc('editar_bairro', { p_antigo: antigo, p_novo: novo, p_cobrador: cob || null, p_mover_fichas: !!mover }), { todos: true });
+  return { clientes: r && r.clientes, movidas: r && r.fichas_movidas };
+};
+aplicarRemoverBairro = function(b){ return acaoServidor(() => rpc('remover_bairro', { p_bairro: b }), null); };
+aplicarOrdemRota = async function(cobradorId, chaves){
+  const lista = ordenarLocal(cobradorId, chaves);
+  lista.forEach(f => { if(f._row) f._row.ordem_rota = f.ordem; });
+  const ids = lista.map(f => f.id).filter(Boolean);
+  if(eu && eu.papel === 'cobrador'){ salvarCache(); enfileirar({ tipo: 'ordem', fichaIds: ids }); return; }
+  await acaoServidor(() => rpc('ordenar_rota', { p_fichas: ids }), { cobradores: [cobradorId] });
+};
+aplicarPerfil = async function(d){
+  await acaoServidor(() => rpc('atualizar_meu_perfil', { p_nome: d.nome, p_telefone: d.telefone || null, p_foto: d.foto === undefined ? null : d.foto }), null);
+  eu.nome = d.nome; eu.telefone = d.telefone; PERFIL.nome = d.nome; PERFIL.telefone = d.telefone;
+  if(d.foto !== undefined){ if(d.foto) FOTOS[eu.id] = d.foto; else delete FOTOS[eu.id]; }
+  salvarCache();
+};
+aplicarEmpresa = async function(d){
+  await acaoServidor(() => rpc('atualizar_empresa', { p_nome: d.nome, p_cor: d.cor || null, p_logo: d.logo === undefined ? null : d.logo, p_marca_dagua: !!d.marcaDagua }), null);
+  if(d.logo !== undefined) EMPRESA.logo = d.logo;
+};
+
 // ---------- início ----------
 criarTelas();
 (async function boot(){
@@ -3399,4 +4306,3 @@ window.RC_DEBUG = { get eu(){ return eu; }, fila: () => fila, problemas: () => p
 if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){ window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 </script>
 </body>
-</html>
