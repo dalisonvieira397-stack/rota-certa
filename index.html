@@ -1029,13 +1029,14 @@ function renderCobrador(){
   const totalDia = pagas.reduce((s, f) => s + valor(f), 0);
   const totalPix = pagas.filter(f => f.formaPagamento === 'pix').reduce((s, f) => s + valor(f), 0);
   const totalDinheiro = pagas.filter(f => f.formaPagamento === 'dinheiro').reduce((s, f) => s + valor(f), 0);
-  const feitas = doDia.length - pendentes.length;
+  const naoVis = doDia.filter(f => f.status === 'remarcada' && f.remarcacaoAutomatica).length;
+  const feitas = doDia.length - pendentes.length - naoVis;
   document.getElementById('rd-total').textContent = formatBRL(totalDia);
   document.getElementById('rd-linha').innerHTML =
     `<span>Pix <b>${formatBRL(totalPix)}</b></span><span>Dinheiro a entregar <b>${formatBRL(totalDinheiro)}</b></span><span><b>${pagas.length}</b> paga(s)</span>`;
   document.getElementById('rd-prog').style.width = (doDia.length ? Math.round(feitas / doDia.length * 100) : 0) + '%';
   document.getElementById('rd-prog-txt').textContent = doDia.length
-    ? `${feitas} de ${doDia.length} ficha(s) visitada(s) · faltam ${pendentes.length}` : 'Nenhuma ficha vence hoje.';
+    ? `${feitas} de ${doDia.length} ficha(s) visitada(s)` + (pendentes.length ? ` · faltam ${pendentes.length}` : '') + (naoVis ? ` · ${naoVis} não visitada(s), ficam para amanhã` : '') : 'Nenhuma ficha vence hoje.';
   document.getElementById('rodape-dia').innerHTML = '';
 
   const envioBox = document.getElementById('envio-dia');
@@ -3494,7 +3495,7 @@ function homeCobrador(){
   const dia = fichasDoDia(id), pagas = dia.filter(f => f.status === 'paga'), pend = dia.filter(f => f.status === 'pendente');
   const val = f => (f.valorRecebidoHoje ?? f.parcela);
   const tot = pagas.reduce((s, f) => s + val(f), 0), pix = pagas.filter(f => f.formaPagamento === 'pix').reduce((s, f) => s + val(f), 0);
-  const feitas = dia.length - pend.length;
+  const feitas = dia.length - pend.length - dia.filter(f => f.status === 'remarcada' && f.remarcacaoAutomatica).length;
   const prox = {}; fichas.filter(f => f.cobradorId === id && !f.quitada && !f.cancelada).forEach(f => { const d = dataProxima(f) || (f.status === 'paga' ? f.proximaData : null); if(d && d > HOJE) prox[d] = (prox[d] || 0) + 1; });
   const agenda = Object.keys(prox).sort().slice(0, 5).map(d => `<span class="chip"><b>${dataBR(d).slice(0, 5)}</b> ${prox[d]} ficha(s)</span>`).join('');
   return `<div class="resumo-dia">
@@ -3731,6 +3732,12 @@ function derivar(){
       f.vencimento = HOJE; f.status = 'paga';
       if(!f.quitada) f.proximaData = f._row.data_cobranca;
     }
+    // remarcadas e não visitadas de hoje continuam aparecendo depois do OK do administrador
+    const rd = resultadosHoje.get(f.id);
+    if(rd && rd.situacao !== 'paga' && !f.cancelada && f._row.data_cobranca !== HOJE && confirmacoesAdmin[f.cobradorId]){
+      f.vencimento = HOJE; f.status = 'remarcada'; f.novaData = rd.nova_data;
+      if(rd.situacao === 'nao_visitada') f.remarcacaoAutomatica = true; else delete f.remarcacaoAutomatica;
+    }
     if(f.status === 'paga'){
       const dia = reais.filter(p => p.data === f.vencimento);
       if(dia.length){ f.valorRecebidoHoje = n2(dia.reduce((s, p) => s + p.valor, 0)); f.formaPagamento = dia[dia.length - 1].forma; }
@@ -3751,14 +3758,16 @@ function aplicarFech(fech){
   });
 }
 const FECH_COLS = 'cobrador_id,enviado_em,confirmado_em,especie_entregue,diferenca';
+let resultadosHoje = new Map();
 async function carregarPequenas(){
   const adm = eu.papel === 'admin';
-  const [emp, perfis, rotas, vls, fech, aud] = await Promise.all([
+  const [emp, perfis, rotas, vls, fech, res, aud] = await Promise.all([
     db.from('empresas').select('id,nome,chave_acesso,ativa,cobradores_incluidos,cor,marca_dagua').single(),
     lerTudo('perfis', 'id,nome,usuario,papel,periodicidade,comissao_pct,ativo,telefone'),
     lerTudo('rotas_bairros', 'bairro,cobrador_id', null, 'bairro'),
     lerTudo('vales', 'id,cobrador_id,data,valor,origem,criado_em'),
     lerTudo('fechamentos_dia', FECH_COLS, q => q.eq('data', HOJE), 'cobrador_id'),
+    lerTudo('resultados_dia', 'ficha_id,situacao,nova_data', q => q.eq('data', HOJE), 'ficha_id').catch(() => []),
     adm ? db.from('auditoria').select('quem,acao,detalhe,criado_em').order('criado_em', { ascending: false }).limit(300) : Promise.resolve({ data: [] })
   ]);
   if(emp.error) throw emp.error;
@@ -3775,6 +3784,7 @@ async function carregarPequenas(){
     origem: v.origem === 'diferenca_fechamento' ? 'Diferença não repassada no fechamento do dia' : undefined
   }));
   aplicarFech(fech);
+  resultadosHoje = new Map(res.map(r => [r.ficha_id, r]));
   auditoria = (aud.data || []).slice().reverse().map(r => ({ quando: r.criado_em, quem: limpa(r.quem), acao: limpa(r.acao), detalhe: h(r.detalhe) }));
   const meu = perfis.find(p => p.id === (eu && eu.id));
   if(meu){ eu.nome = limpa(meu.nome); eu.telefone = limpa(meu.telefone); PERFIL.nome = eu.nome; PERFIL.telefone = eu.telefone; }
