@@ -318,6 +318,10 @@
   .day-footer .stat .value{ font-family:'IBM Plex Mono', monospace; font-size:1.25rem; font-weight:600; }
 
   .ficha-card.resolver{ border-left-color:#C2410C; }
+  .stamp.atraso{ background:color-mix(in srgb, #B91C1C 10%, #fff); color:#991B1B; }
+  .aviso-fechamento{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:#FEF3C7; border:1px solid #F59E0B; color:#78350F; border-radius:12px; padding:10px 14px; margin:12px 0; font-size:.88rem; line-height:1.4; }
+  .aviso-fechamento > div{ flex:1 1 220px; }
+  .aviso-fechamento .ico{ flex:0 0 auto; color:#B45309; }
   .stamp.laranja{ background:color-mix(in srgb, #C2410C 12%, #fff); color:#9A3412; }
   .acoes-menores{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
   .acoes-menores .btn{ flex:1 1 120px; min-height:34px; font-size:.8rem; color:var(--ink-soft); }
@@ -598,6 +602,7 @@
         </thead>
         <tbody id="tabela-conferencia"></tbody>
       </table>
+      <div id="conf-dias-antigos"></div>
 
       <div class="detalhe-cobrador card-block" id="detalhe-cobrador-panel">
         <h3 id="detalhe-cobrador-nome"></h3>
@@ -1027,6 +1032,27 @@ function ordenarPorRota(lista){
 function fichasDoDia(cobradorId){
   return ordenarPorRota(fichas.filter(f => f.cobradorId === cobradorId && f.vencimento === HOJE && !f.cancelada));
 }
+// fichas atrasadas (a cobrar com data que já passou): ficam sempre na rota do cobrador, no começo da lista
+function ehAtrasadaRota(f){ return f.status === 'pendente' && !f.pendencia && !f.cancelada && !f.quitada && !!f.vencimento && f.vencimento < HOJE; }
+function fichasAtrasadasRota(cobradorId){ return ordenarPorRota(fichas.filter(f => f.cobradorId === cobradorId && ehAtrasadaRota(f))); }
+function fichasDaRota(cobradorId){ return fichasAtrasadasRota(cobradorId).concat(fichasDoDia(cobradorId)); }
+function trazerAtrasadaLocal(f){ if(f && ehAtrasadaRota(f)){ f.vencimento = HOJE; if(f._row) f._row.data_cobranca = HOJE; } }
+// dias anteriores sem fechamento: [{ cobrador_id, data, enviado, dinheiro, pix, pagas, remarcadas }]
+let diasSemFechamento = [];
+function diasSemEnvio(cobradorId){ return diasSemFechamento.filter(d => d.cobrador_id === cobradorId && !d.enviado); }
+function avisoDiasSemFechamento(cobradorId){
+  const l = diasSemEnvio(cobradorId); if(!l.length) return '';
+  const datas = l.map(d => dataBR(d.data).slice(0, 5)).join(', ');
+  const ehCob = sessao && sessao.papel === 'cobrador';
+  return `<div class="aviso-fechamento"><svg class="ico sm"><use href="#i-alerta"/></svg><div><b>${l.length === 1 ? '1 dia' : l.length + ' dias'} sem enviar o fechamento</b> (${datas}).
+    ${ehCob ? 'As fichas continuam normais. Envie para o administrador poder conferir.' : 'As fichas continuam normais; o administrador pode conferir em Conferência do dia.'}</div>
+    ${ehCob ? `<button class="btn primary pequeno" onclick="enviarDiasAtrasados()">Enviar agora</button>` : ''}</div>`;
+}
+function enviarDiasAtrasados(){
+  const id = document.getElementById('select-cobrador').value;
+  diasSemEnvio(id).forEach(d => { d.enviado = true; });
+  renderCobrador();
+}
 function renderCobrador(){
   const cobradorId = document.getElementById('select-cobrador').value;
   const cobrador = cobradores.find(c => c.id === cobradorId);
@@ -1036,10 +1062,11 @@ function renderCobrador(){
   document.getElementById('rota-data').textContent = maiuscula(formatDataExtenso(HOJE)) + (cobrador.bairros.length ? ' · ' + cobrador.bairros.join(', ') : '');
 
   const doDia = fichasDoDia(cobradorId);
+  const atrasadas = fichasAtrasadasRota(cobradorId), rota = atrasadas.concat(doDia);
   const enviado = enviosDia[cobradorId] === true;
-  const posicao = new Map(doDia.map((f, i) => [f, i + 1]));
+  const posicao = new Map(rota.map((f, i) => [f, i + 1]));
   const busca = normalizaTxt(document.getElementById('busca-rota')?.value || '');
-  let mostrar = doDia;
+  let mostrar = rota;
   if(filtroRota === 'cobrar') mostrar = mostrar.filter(f => f.status === 'pendente' && !f.pendencia);
   if(filtroRota === 'feitas') mostrar = mostrar.filter(f => f.status !== 'pendente' || f.pendencia);
   if(busca) mostrar = mostrar.filter(f => {
@@ -1047,7 +1074,7 @@ function renderCobrador(){
     return normalizaTxt([c.nome, c.endereco, c.numeroCasa, c.bairro, c.referencia, f.numero, f.mercadoria].join(' ')).includes(busca);
   });
   lista.innerHTML = mostrar.map(f => renderFichaCard(f, enviado, posicao.get(f))).join('') ||
-    `<div class="card-block" style="text-align:center;color:var(--ink-soft);">${doDia.length ? 'Nenhuma ficha com esse filtro.' : 'Nenhuma ficha para cobrar hoje.'}</div>`;
+    `<div class="card-block" style="text-align:center;color:var(--ink-soft);">${rota.length ? 'Nenhuma ficha com esse filtro.' : 'Nenhuma ficha para cobrar hoje.'}</div>`;
 
   const pagas = doDia.filter(f => f.status === 'paga');
   const pendentes = doDia.filter(f => f.status === 'pendente' && !f.pendencia);
@@ -1063,7 +1090,8 @@ function renderCobrador(){
   document.getElementById('rd-prog').style.width = (doDia.length ? Math.round(feitas / doDia.length * 100) : 0) + '%';
   document.getElementById('rd-prog-txt').textContent = doDia.length
     ? `${feitas} de ${doDia.length} ficha(s) visitada(s)` + (pendentes.length ? ` · faltam ${pendentes.length}` : '') + (naoVis ? ` · ${naoVis} não visitada(s), ficam para amanhã` : '') : 'Nenhuma ficha vence hoje.';
-  document.getElementById('rodape-dia').innerHTML = '';
+  if(atrasadas.length) document.getElementById('rd-prog-txt').textContent += ` · ${atrasadas.length} atrasada(s) no começo da lista`;
+  document.getElementById('rodape-dia').innerHTML = avisoDiasSemFechamento(cobradorId);
 
   const envioBox = document.getElementById('envio-dia');
   const botao = `<button class="btn primary" onclick="enviarResultadoDia()"><svg class="ico sm"><use href="#i-check"/></svg> Enviar resultado do dia</button>`;
@@ -1106,6 +1134,8 @@ function renderFichaCard(f, enviado, pos){
       + (!enviado && f.pendenciaData === HOJE ? `<div class="acoes-menores"><button class="btn ghost" onclick="desfazerPendencia('${f.numero}')">Desfazer marcação</button></div>` : '');
   } else if(f.status === 'paga'){
     stamp = `<div class="stamp"><svg class="ico sm"><use href="#i-check"/></svg> PAGO ${formatBRL(f.valorRecebidoHoje ?? f.parcela)} · ${f.formaPagamento === 'pix' ? 'PIX' : 'DINHEIRO'}${f.quitada ? ' · QUITADA' : ''}${f.proximaData ? ' · PRÓXIMA ' + dataBR(f.proximaData) : ''}</div>`;
+  } else if(ehAtrasadaRota(f)){
+    stamp = `<div class="stamp atraso">ATRASADA · ${diasAtraso(f)} DIA(S) · ERA PARA ${dataBR(f.vencimento)}</div>`;
   } else if(f.status === 'remarcada'){
     stamp = `<div class="stamp cinza">${f.remarcacaoAutomatica ? 'NÃO VISITADA' : 'REMARCADA'}${f.novaData ? ' · ' + dataBR(f.novaData) : ''}</div>`;
   }
@@ -1209,6 +1239,7 @@ function confirmarBaixa(numero){
     }
   }
 
+  trazerAtrasadaLocal(f);
   (f.pagamentos ||= []).push({ data: HOJE, valor: valorPagoAgora, forma, cobradorId: f.cobradorId });
   f.valorRecebidoHoje = valorPagoAgora; // usado nos totais do dia/semana/mês
   f.valorPago = novoValorPago;
@@ -1222,6 +1253,7 @@ function confirmarRemarcacao(numero){
   const novaData = document.getElementById('nova-data-'+numero).value;
   const f = fichas.find(x=>x.numero===numero);
   if(!novaData) return;
+  trazerAtrasadaLocal(f);
   f.status = 'remarcada';
   f.novaData = novaData;
   renderCobrador();
@@ -1275,12 +1307,13 @@ function renderCobradores(){
   const tbody = document.getElementById('tabela-cobradores');
   tbody.innerHTML = cobradores.map(c => {
     const dia = fichasDoDia(c.id), pend = dia.filter(f => f.status === 'pendente' && !f.pendencia).length;
+    const semFech = diasSemEnvio(c.id).length;
     const ativas = fichas.filter(f => f.cobradorId === c.id && !f.quitada && !f.cancelada);
     const carteira = ativas.length, valorCarteira = ativas.reduce((s, f) => s + f.valorTotal, 0);
     return `
     <tr>
       <td><div class="avatar-wrap">${avatarHTML(c)}<span>${linkCobrador(c.id, c.nome)}<br><span class="mono" style="font-size:.76rem;color:var(--ink-muted);">${h(c.login)}</span></span></div></td>
-      <td>${dia.length ? `<b>${dia.length}</b> ficha(s) <span class="badge ${pend ? 'wait' : 'ok'}">${pend ? pend + ' a cobrar' : 'todas visitadas'}</span>` : '<span class="badge neutro">nenhuma hoje</span>'}</td>
+      <td>${dia.length ? `<b>${dia.length}</b> ficha(s) <span class="badge ${pend ? 'wait' : 'ok'}">${pend ? pend + ' a cobrar' : 'todas visitadas'}</span>` : '<span class="badge neutro">nenhuma hoje</span>'}${semFech ? ` <span class="badge laranja">${semFech} dia(s) sem fechamento</span>` : ''}</td>
       <td class="num">${carteira}</td>
       <td class="num">${formatBRL(valorCarteira)}</td>
       <td>${c.bairros.length ? c.bairros.map(b => `<span class="chip">${h(b)}</span>`).join('') : '—'}</td>
@@ -1669,6 +1702,43 @@ function renderConferencia(){
       </tr>
     `;
   }).join('');
+  renderDiasAntigos();
+}
+
+// dias anteriores ainda sem conferência (o cobrador esqueceu de enviar ou o dia não foi conferido)
+function renderDiasAntigos(){
+  const box = document.getElementById('conf-dias-antigos'); if(!box) return;
+  const l = diasSemFechamento.filter(d => cobradores.some(c => c.id === d.cobrador_id));
+  if(!l.length){ box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="section-title" style="margin-top:22px;"><h2>Dias anteriores sem fechamento</h2></div>
+    <p class="sub" style="margin:-4px 0 12px;">As fichas desses dias já seguiram normalmente. Falta só conferir o dinheiro. Se o cobrador não enviou, você pode conferir mesmo assim.</p>
+    <div class="tabela-wrap"><table><thead><tr><th>Cobrador</th><th>Dia</th><th>Situação</th><th class="num">Pagas</th><th class="num">Remarcadas</th><th class="num">Dinheiro</th><th class="num">Pix</th><th></th></tr></thead><tbody>
+    ${l.map(d => `<tr><td>${h(cobradorNome(d.cobrador_id))}</td><td class="mono">${dataBR(d.data)}</td>
+      <td>${d.enviado ? '<span class="badge wait">Enviado, falta conferir</span>' : '<span class="badge laranja">Cobrador não enviou</span>'}</td>
+      <td class="num mono">${d.pagas || 0}</td><td class="num mono">${d.remarcadas || 0}</td>
+      <td class="num mono">${formatBRL(+d.dinheiro || 0)}</td><td class="num mono">${formatBRL(+d.pix || 0)}</td>
+      <td><button class="btn primary pequeno" onclick="abrirConferirDia('${d.cobrador_id}','${d.data}')">Conferir</button></td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+function abrirConferirDia(cobradorId, data){
+  const d = diasSemFechamento.find(x => x.cobrador_id === cobradorId && x.data === data); if(!d) return;
+  abrirModal({ titulo: 'Conferir ' + dataBR(data) + ' — ' + h(cobradorNome(cobradorId)),
+    corpo: `<p>Dinheiro recebido nesse dia: <b>${formatBRL(+d.dinheiro || 0)}</b> · Pix: <b>${formatBRL(+d.pix || 0)}</b></p>
+      ${d.enviado ? '' : '<p style="color:var(--ink-soft);font-size:.88rem;">O cobrador não enviou o fechamento desse dia. Ao conferir, o dia fica fechado.</p>'}
+      <label class="campo">Dinheiro que o cobrador entregou<input type="number" id="cd-entregue" min="0" step="0.01" inputmode="decimal" value="${(+d.dinheiro || 0).toFixed(2)}"></label>
+      <p style="color:var(--ink-soft);font-size:.85rem;">Se entregar menos, a diferença vira vale do cobrador (igual à conferência de hoje).</p><p class="erro-txt" id="cd-erro"></p>`,
+    botoes: [ { txt: 'Cancelar', acao: m => m.fechar() },
+      { txt: 'Conferir dia', cls: 'primary', acao: async (m, bt) => {
+          const v = parseFloat(document.getElementById('cd-entregue').value);
+          if(isNaN(v) || v < 0){ document.getElementById('cd-erro').textContent = 'Informe o valor entregue.'; return; }
+          bt.disabled = true;
+          try { await aplicarConferirDia(cobradorId, data, v); m.fechar(); toast('Dia ' + dataBR(data) + ' conferido.', true); }
+          catch(e){ document.getElementById('cd-erro').textContent = e.message || String(e); bt.disabled = false; }
+        } } ] });
+}
+async function aplicarConferirDia(cobradorId, data, entregue){
+  diasSemFechamento = diasSemFechamento.filter(x => !(x.cobrador_id === cobradorId && x.data === data));
+  renderAdmin();
 }
 
 function valorEsperadoDinheiro(cobradorId){
@@ -2994,7 +3064,8 @@ const ico = (n, cls) => `<svg class="ico${cls ? ' ' + cls : ''}"><use href="#i-$
 function contadores(){
   if(UI.papel !== 'admin') return {};
   const aguardando = cobradoresAtivos().filter(c => enviosDia[c.id] && !confirmacoesAdmin[c.id]).length;
-  return { conferencia: aguardando, resolver: fichasParaResolver().length };
+  const antigos = diasSemFechamento.filter(d => cobradores.some(c => c.id === d.cobrador_id)).length;
+  return { conferencia: aguardando + antigos, resolver: fichasParaResolver().length };
 }
 function montarMenu(){
   const nav = document.getElementById('sb-nav');
@@ -3315,7 +3386,7 @@ function orgEscopo(e, inicio){
   if(ORG.mudou && !inicio && !window.confirm('Trocar a lista agora desfaz a ordem que você mexeu e ainda não salvou. Continuar?')) return;
   ORG.escopo = e; ORG.mudou = false;
   document.querySelectorAll('#org-escopo button').forEach(b => b.classList.toggle('ativo', b.dataset.e === e));
-  const lista = e === 'hoje' ? fichasDoDia(ORG.cobradorId) : ordenarPorRota(fichas.filter(f => f.cobradorId === ORG.cobradorId && !f.quitada && !f.cancelada && !f.pendencia));
+  const lista = e === 'hoje' ? fichasDaRota(ORG.cobradorId) : ordenarPorRota(fichas.filter(f => f.cobradorId === ORG.cobradorId && !f.quitada && !f.cancelada && !f.pendencia));
   ORG.chaves = lista.map(fkey);
   desenharOrg();
 }
@@ -3499,7 +3570,10 @@ function renderHome(){
   const nResolver = fichasParaResolver().length;
   const atrasadas = listaAtrasadas().length, aguard = contadores().conferencia || 0;
   const enviados = ativos.filter(c => enviosDia[c.id]).length;
-  v.innerHTML = topo + `<div class="kpis">
+  const semFech = diasSemFechamento.filter(d => cobradores.some(c => c.id === d.cobrador_id));
+  const semEnvio = semFech.filter(d => !d.enviado);
+  const nomesSem = [...new Set(semEnvio.map(d => cobradorNome(d.cobrador_id)))];
+  v.innerHTML = topo + (semFech.length ? `<div class="aviso-fechamento"><svg class="ico sm"><use href="#i-alerta"/></svg><div><b>${semFech.length} dia(s) anterior(es) sem fechamento</b>${nomesSem.length ? ' · sem envio: ' + nomesSem.map(n => h(n) + ' (' + semEnvio.filter(d => cobradorNome(d.cobrador_id) === n).length + ')').join(', ') : ''}. As fichas seguiram normalmente; falta conferir o dinheiro.</div><button class="btn primary pequeno" onclick="irPara('conferencia')">Conferir</button></div>` : '') + `<div class="kpis">
       ${kpi('Cobrado hoje', 'dinheiro', formatBRL(pix + din), hoje.length + ' pagamento(s)', 'destaque')}
       ${kpi('Pix hoje', 'pix', formatBRL(pix), 'confira no banco')}
       ${kpi('Dinheiro hoje', 'carteira', formatBRL(din), 'a receber dos cobradores')}
@@ -3538,17 +3612,18 @@ function desenharGraficos(pg){
 function homeCobrador(){
   const id = sessao && sessao.papel === 'cobrador' ? sessao.id : document.getElementById('select-cobrador').value;
   const dia = fichasDoDia(id), pagas = dia.filter(f => f.status === 'paga'), pend = dia.filter(f => f.status === 'pendente' && !f.pendencia);
+  const atras = fichasAtrasadasRota(id).length;
   const val = f => (f.valorRecebidoHoje ?? f.parcela);
   const tot = pagas.reduce((s, f) => s + val(f), 0), pix = pagas.filter(f => f.formaPagamento === 'pix').reduce((s, f) => s + val(f), 0);
   const feitas = dia.length - pend.length - dia.filter(f => f.status === 'remarcada' && f.remarcacaoAutomatica).length;
   const prox = {}; fichas.filter(f => f.cobradorId === id && !f.quitada && !f.cancelada).forEach(f => { const d = dataProxima(f) || (f.status === 'paga' ? f.proximaData : null); if(d && d > HOJE) prox[d] = (prox[d] || 0) + 1; });
   const agenda = Object.keys(prox).sort().slice(0, 5).map(d => `<span class="chip"><b>${dataBR(d).slice(0, 5)}</b> ${prox[d]} ficha(s)</span>`).join('');
-  return `<div class="resumo-dia">
+  return avisoDiasSemFechamento(id) + `<div class="resumo-dia">
       <div class="topo"><div><h2>Hoje</h2><div class="data">${enviosDia[id] ? 'Resultado do dia já enviado ✓' : (pend.length ? 'Faltam ' + pend.length + ' ficha(s)' : (dia.length ? 'Rota concluída, falta enviar o resultado' : 'Nenhuma ficha para hoje'))}</div></div></div>
       <div class="total">${formatBRL(tot)}</div>
       <div class="linha-v"><span>Pix <b>${formatBRL(pix)}</b></span><span>Dinheiro a entregar <b>${formatBRL(tot - pix)}</b></span></div>
       <div class="progresso"><div style="width:${dia.length ? Math.round(feitas / dia.length * 100) : 0}%"></div></div>
-      <div class="prog-txt">${feitas} de ${dia.length} ficha(s) visitada(s)</div>
+      <div class="prog-txt">${feitas} de ${dia.length} ficha(s) visitada(s)${atras ? ` · <b>${atras} atrasada(s)</b> na rota` : ''}</div>
       <div class="acoes" style="margin:14px 0 0;"><button class="btn" onclick="irPara('rota')">${ico('rota', 'sm')} Abrir rota de hoje</button><button class="btn" onclick="abrirOrganizador()">${ico('ordem', 'sm')} Organizar rota</button></div>
     </div>
     ${agenda ? `<div class="titulo-sec">Próximos dias</div><div style="margin:0 0 20px;">${agenda}</div>` : ''}
@@ -3588,6 +3663,7 @@ async function desfazerPendencia(numero){
 async function aplicarPendencia(numero, tipo, obs){
   const f = fichas.find(x => x.numero === numero);
   if(!f || f.status !== 'pendente' || f.pendencia) throw new Error('Esta ficha não pode ser marcada agora.');
+  trazerAtrasadaLocal(f);
   f.pendencia = tipo; f.pendenciaObs = obs || ''; f.pendenciaData = HOJE; f.pendenciaEm = new Date().toISOString();
   registrar(TIPO_TXT[tipo], `Ficha ${numero} · ${h(clienteNome(f.clienteId))}${obs ? ' · ' + h(obs) : ''}`);
   renderCobrador(); if(UI.papel === 'admin') renderAdmin();
@@ -3935,18 +4011,24 @@ function aplicarFech(fech){
   });
 }
 const FECH_COLS = 'cobrador_id,enviado_em,confirmado_em,especie_entregue,diferenca';
+function aplicarDiasSemFechamento(l){
+  if(!Array.isArray(l)) return;   // banco ainda sem a atualização 3.3 ou sem internet: mantém o que tinha
+  diasSemFechamento = l.map(d => ({ cobrador_id: d.cobrador_id, data: d.data, enviado: !!d.enviado, dinheiro: +d.dinheiro || 0, pix: +d.pix || 0, pagas: +d.pagas || 0, remarcadas: +d.remarcadas || 0 }));
+}
 let resultadosHoje = new Map();
 async function carregarPequenas(){
   const adm = eu.papel === 'admin';
-  const [emp, perfis, rotas, vls, fech, res, aud] = await Promise.all([
+  const [emp, perfis, rotas, vls, fech, res, aud, dsf] = await Promise.all([
     db.from('empresas').select('id,nome,chave_acesso,ativa,cobradores_incluidos,cor,marca_dagua').single(),
     lerTudo('perfis', 'id,nome,usuario,papel,periodicidade,comissao_pct,ativo,telefone'),
     lerTudo('rotas_bairros', 'bairro,cobrador_id', null, 'bairro'),
     lerTudo('vales', 'id,cobrador_id,data,valor,origem,criado_em'),
     lerTudo('fechamentos_dia', FECH_COLS, q => q.eq('data', HOJE), 'cobrador_id'),
     lerTudo('resultados_dia', 'ficha_id,situacao,nova_data', q => q.eq('data', HOJE), 'ficha_id').catch(() => []),
-    adm ? db.from('auditoria').select('quem,acao,detalhe,criado_em').order('criado_em', { ascending: false }).limit(300) : Promise.resolve({ data: [] })
+    adm ? db.from('auditoria').select('quem,acao,detalhe,criado_em').order('criado_em', { ascending: false }).limit(300) : Promise.resolve({ data: [] }),
+    rpc('dias_sem_fechamento').catch(() => null)
   ]);
+  aplicarDiasSemFechamento(dsf);
   if(emp.error) throw emp.error;
   if(!emp.data.ativa) throw new Error('A assinatura desta empresa está suspensa. Entre em contato com o suporte.');
   EMPRESA.nome = limpa(emp.data.nome); EMPRESA.chave = emp.data.chave_acesso; EMPRESA.cobradoresIncluidos = emp.data.cobradores_incluidos;
@@ -4056,7 +4138,7 @@ async function acaoServidor(fn, ops){
 function salvarCache(){
   if(!eu || eu.papel !== 'cobrador') return;
   try {
-    localStorage.setItem('rc_cache_' + eu.id, JSON.stringify({ eu, hoje: HOJE, empresa: { nome: EMPRESA.nome, chave: EMPRESA.chave, cor: EMPRESA.cor, logo: EMPRESA.logo, marcaDagua: EMPRESA.marcaDagua }, foto: FOTOS[eu.id] || '', cobradores, clientes, fichas, vales, enviosDia, confirmacoesAdmin, entregasRegistradas }));
+    localStorage.setItem('rc_cache_' + eu.id, JSON.stringify({ eu, hoje: HOJE, empresa: { nome: EMPRESA.nome, chave: EMPRESA.chave, cor: EMPRESA.cor, logo: EMPRESA.logo, marcaDagua: EMPRESA.marcaDagua }, foto: FOTOS[eu.id] || '', cobradores, clientes, fichas, vales, enviosDia, confirmacoesAdmin, entregasRegistradas, diasSemFechamento }));
     localStorage.setItem('rc_ultimo', eu.id);
   } catch(e){}
 }
@@ -4067,7 +4149,7 @@ function restaurarCache(){
     eu = c.eu; sessao = { papel: 'cobrador', id: eu.id };
     EMPRESA.nome = c.empresa.nome; EMPRESA.chave = c.empresa.chave; EMPRESA.cor = c.empresa.cor || ''; EMPRESA.logo = c.empresa.logo || ''; EMPRESA.marcaDagua = !!c.empresa.marcaDagua;
     if(c.foto) FOTOS[eu.id] = c.foto;
-    cobradores = c.cobradores; vales = c.vales; enviosDia = c.enviosDia; confirmacoesAdmin = c.confirmacoesAdmin; entregasRegistradas = c.entregasRegistradas;
+    cobradores = c.cobradores; vales = c.vales; enviosDia = c.enviosDia; confirmacoesAdmin = c.confirmacoesAdmin; entregasRegistradas = c.entregasRegistradas; diasSemFechamento = c.diasSemFechamento || [];
     clientes.length = 0; cliMap.clear(); c.clientes.forEach(x => { clientes.push(x); cliMap.set(x.id, x); });
     fichas.length = 0; porId.clear(); c.fichas.forEach(f => { fichas.push(f); porId.set(f.id, f); });
     HOJE = RC.hoje(); lerFila(); return true;
@@ -4147,6 +4229,7 @@ async function atualizarDia(){
     const novo = fech.filter(r => r.confirmado_em).map(r => r.cobrador_id).sort().join();
     if(novo !== Object.keys(confirmacoesAdmin).sort().join()){ await recarregar({ todos: true }); return; }
     aplicarFech(fech);
+    aplicarDiasSemFechamento(await rpc('dias_sem_fechamento').catch(() => null));
     const [fr, pg] = await Promise.all([ lerTudo('fichas', FICHA_COLS, q => q.eq('data_cobranca', HOJE)), lerTudo('pagamentos', PG_COLS, q => q.eq('data', HOJE)) ]);
     upsertFichas(fr); await aplicarPagamentosRows(pg, { substituirData: HOJE }); await garantirClientes();
     derivar();
@@ -4291,6 +4374,19 @@ enviarResultadoDia = function(){
   if(!eu || eu.papel !== 'cobrador') return _er();
   const dia = HOJE; _er();
   enfileirar({ tipo: 'enviar', data: dia });
+};
+enviarDiasAtrasados = function(){
+  if(!eu || eu.papel !== 'cobrador') return;
+  const l = diasSemEnvio(eu.id); if(!l.length) return;
+  confirmar('Enviar para o administrador o fechamento de ' + l.map(d => dataBR(d.data)).join(', ') + '?', { titulo: 'Enviar fechamento atrasado', ok: 'Enviar' }).then(sim => {
+    if(!sim) return;
+    l.forEach(d => { d.enviado = true; enfileirar({ tipo: 'enviar', data: d.data }); });
+    salvarCache(); renderCobrador(); if(typeof depoisDeDesenhar === 'function') depoisDeDesenhar();
+    toast('Fechamento enviado.', true);
+  });
+};
+aplicarConferirDia = async function(cobradorId, data, entregue){
+  return acaoServidor(() => rpc('conferir_dia', { p_cobrador: cobradorId, p_data: data, p_entregue: entregue }), { todos: true });
 };
 const _sp = salvarProximaData;
 salvarProximaData = function(numero){
@@ -4532,6 +4628,7 @@ aplicarPendencia = async function(numero, tipo, obs){
   const f = fichas.find(x => x.numero === numero);
   if(!f || f.status !== 'pendente' || f.pendencia) throw new Error('Esta ficha não pode ser marcada agora.');
   const dia = HOJE;
+  trazerAtrasadaLocal(f);
   f.pendencia = tipo; f.pendenciaObs = obs || ''; f.pendenciaData = dia; f.pendenciaEm = new Date().toISOString();
   if(f._row){ f._row.pendencia = tipo; f._row.pendencia_obs = obs || null; f._row.pendencia_data = dia; f._row.pendencia_em = f.pendenciaEm; }
   salvarCache(); renderCobrador();
